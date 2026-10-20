@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>大明王朝1566 · 剧情闯关</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --gold:#d4af37; --gold-dim:#8a6f2a; --paper:#e8dcc0; }
+  body {
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 50% -10%, #3a2415 0%, transparent 55%),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0 2px, transparent 2px 6px),
+      linear-gradient(180deg, #1c130c 0%, #120b06 100%);
+    font-family:"Noto Serif SC","Source Han Serif SC","STSong","SimSun",serif;
+    color:var(--paper); user-select:none;
+  }
+  .wrap { max-width:960px; margin:0 auto; padding:18px 16px 40px; }
+  h1 { font-size:22px; letter-spacing:8px; color:var(--gold); text-align:center;
+    text-shadow:0 0 18px rgba(212,175,55,.35); margin-bottom:4px; }
+  .sub { text-align:center; font-size:12px; color:#8a7a5a; letter-spacing:3px; margin-bottom:20px; }
+  .sub a { color:#8a7a5a; }
+  .screen { display:none; } .screen.on { display:block; }
+
+  /* ---- 选阵营 ---- */
+  .factions { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; }
+  .fc { border:1px solid var(--gold-dim); border-radius:8px; padding:16px 14px; cursor:pointer;
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.25));
+    border-top:3px solid var(--c); transition:all .2s; }
+  .fc:hover { transform:translateY(-4px); box-shadow:0 8px 24px rgba(0,0,0,.5), 0 0 18px var(--c); }
+  .fc .fa { width:46px; height:46px; border-radius:50%; border:2px solid var(--c); font-size:22px;
+    display:flex; align-items:center; justify-content:center; color:#fff; margin-bottom:8px;
+    background:radial-gradient(circle at 35% 30%, var(--c), #1a120c 130%); }
+  .fc h3 { font-size:16px; letter-spacing:2px; color:#f0e2c0; margin-bottom:4px; }
+  .fc p { font-size:11.5px; color:#9a8a6a; line-height:1.7; }
+  .fc .prog { font-size:11px; color:var(--c); margin-top:8px; letter-spacing:1px; }
+
+  /* ---- 关卡列表 ---- */
+  .lvhead { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+  .lvhead .fa { width:44px; height:44px; border-radius:50%; border:2px solid var(--c); font-size:20px;
+    display:flex; align-items:center; justify-content:center; color:#fff;
+    background:radial-gradient(circle at 35% 30%, var(--c), #1a120c 130%); }
+  .lvhead h2 { font-size:19px; letter-spacing:4px; color:#f0e2c0; }
+  .lvhead .back { margin-left:auto; }
+  .btn { background:rgba(212,175,55,.08); color:#d8c9a0; border:1px solid var(--gold-dim);
+    padding:7px 16px; border-radius:4px; cursor:pointer; font-family:inherit; font-size:13px;
+    letter-spacing:2px; transition:all .2s; }
+  .btn:hover { background:rgba(212,175,55,.2); color:#fff; }
+  .lvlist { display:flex; flex-direction:column; gap:10px; }
+  .lv { display:flex; align-items:center; gap:14px; border:1px solid #4a3826; border-left:3px solid var(--c);
+    border-radius:6px; padding:12px 16px; cursor:pointer; transition:all .2s;
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.2)); }
+  .lv:hover { border-color:var(--c); box-shadow:0 0 14px rgba(212,175,55,.15); }
+  .lv.locked { opacity:.4; cursor:not-allowed; }
+  .lv .no { font-size:22px; color:var(--gold); width:34px; text-align:center; }
+  .lv .lt { flex:1; }
+  .lv .lt b { font-size:15px; letter-spacing:2px; color:#f0e2c0; display:block; margin-bottom:2px; }
+  .lv .lt span { font-size:11.5px; color:#8a7a5a; }
+  .lv .st { font-size:12px; letter-spacing:2px; }
+  .lv .st.win { color:#4ecb71; } .lv .st.cur { color:var(--gold); }
+
+  /* ---- 演出界面 ---- */
+  #topbar { display:flex; align-items:center; gap:12px; margin-bottom:8px; flex-wrap:wrap; }
+  #topbar .lvt { font-size:16px; letter-spacing:3px; color:#f0e2c0; }
+  #hint { font-size:12.5px; color:#8a7a5a; margin-bottom:10px; letter-spacing:1px; line-height:1.8; }
+  #hint b { color:#c0aa70; }
+
+  #res { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:6px 18px;
+    border:1px solid #3a2c1c; border-radius:6px; padding:8px 14px; margin-bottom:14px;
+    background:rgba(0,0,0,.25); position:relative; }
+  .rs .lab { display:flex; justify-content:space-between; font-size:11px; color:#8a7a5a; margin-bottom:2px; }
+  .rs .lab b { color:#c0aa70; }
+  .rs .t { height:5px; background:rgba(255,255,255,.05); border-radius:4px; overflow:hidden; }
+  .rs .t i { display:block; height:100%; border-radius:4px; transition:width .6s; }
+  #floater { position:absolute; right:14px; top:-6px; font-size:13px; color:#f5c56a; opacity:0;
+    transition:all 1.2s; pointer-events:none; text-shadow:0 0 8px rgba(0,0,0,.8); z-index:9; white-space:nowrap; }
+  #floater.go { opacity:1; transform:translateY(-22px); }
+
+  #stage { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:16px; min-height:96px; }
+  .card { position:relative; width:118px; padding:10px 8px; text-align:center; opacity:.4;
+    background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.25));
+    border:1px solid #4a3826; border-top:3px solid var(--c); border-radius:6px;
+    transition:all .35s; }
+  .card.speaking { opacity:1; box-shadow:0 0 24px var(--c); transform:translateY(-4px); }
+  .card .av { width:44px; height:44px; margin:0 auto 5px; border-radius:50%; border:2px solid var(--c);
+    background:radial-gradient(circle at 35% 30%, var(--c), #1a120c 130%);
+    display:flex; align-items:center; justify-content:center; font-size:20px; color:#fff; }
+  .card .av.photo { background:#1a120c; overflow:hidden; }
+  .card .av.photo img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
+  .card.speaking .av.photo { box-shadow:0 0 0 2px #f2e8d0 inset; }
+  .card .nm { font-size:14px; color:#f0e2c0; letter-spacing:1px; }
+  .card .tt { font-size:10.5px; color:#8a7a5a; margin-top:2px; }
+
+  #boxwrap { position:relative; }
+  #box { border:1px solid var(--gold-dim); border-radius:8px; padding:18px 22px 30px; min-height:120px;
+    background:linear-gradient(180deg, #f2e8d0, #e4d6b4); color:#2a1c10; font-size:15px; line-height:2.1;
+    cursor:pointer; box-shadow:0 6px 30px rgba(0,0,0,.55), inset 0 0 60px rgba(139,109,60,.15);
+    letter-spacing:.5px; }
+  #box .who { color:#8a2020; font-weight:bold; margin-right:6px; }
+  #box .nar { color:#5a4a30; }
+  #box .more { position:absolute; right:16px; bottom:8px; color:#8a6f2a; font-size:12px;
+    animation:bob 1.1s infinite; }
+  @keyframes bob { 0%,100% { transform:translateY(0);} 50% { transform:translateY(4px);} }
+  #box .ask { font-size:14.5px; color:#6a4a1a; font-weight:bold; margin-bottom:12px; letter-spacing:1px; }
+  #chs { display:flex; flex-direction:column; gap:8px; cursor:default; }
+  .ch { text-align:left; padding:10px 16px; border:1px solid #b09a6a; border-radius:6px;
+    background:rgba(255,255,255,.35); color:#3a2a14; cursor:pointer; font-family:inherit;
+    font-size:14.5px; letter-spacing:1px; transition:all .15s; line-height:1.7; }
+  .ch:hover { border-color:#8a2020; background:#fff6e0; transform:translateX(5px); }
+  .ch .sub { display:block; font-size:11px; color:#8a7a5a; margin-top:2px; }
+
+  /* ---- 结算 ---- */
+  .ov { position:fixed; inset:0; background:rgba(8,4,2,.93); z-index:100; display:none;
+    align-items:center; justify-content:center; flex-direction:column; gap:18px;
+    backdrop-filter:blur(6px); text-align:center; padding:30px; }
+  .ov.show { display:flex; }
+  .ov h2 { font-size:34px; letter-spacing:12px; color:var(--gold); text-shadow:0 0 30px rgba(212,175,55,.5); }
+  .ov h2.lose { color:#c05040; text-shadow:0 0 30px rgba(192,80,64,.4); }
+  .ov .txt { font-size:14.5px; color:#b0a080; max-width:560px; line-height:2.2; }
+  .ov .poem { font-size:16px; color:#e0c98a; line-height:2.4; font-style:italic; }
+  .ov .btns { display:flex; gap:12px; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>大明王朝1566</h1>
+  <div class="sub">剧情闯关 ｜ 五阵营 · 二十关</div>
+
+  <div id="sc-sel" class="screen">
+    <div id="factions" class="factions"></div>
+  </div>
+
+  <div id="sc-lv" class="screen">
+    <div id="lvhead" class="lvhead"></div>
+    <div id="lvlist" class="lvlist"></div>
+  </div>
+
+  <div id="sc-play" class="screen">
+    <div id="topbar">
+      <span class="lvt" id="p-title"></span>
+      <button class="btn" id="p-retry">重演本关</button>
+      <button class="btn" id="p-back">退出</button>
+    </div>
+    <div id="hint"></div>
+    <div id="res"><div id="floater"></div></div>
+    <div id="stage"></div>
+    <div id="boxwrap"><div id="box"></div></div>
+  </div>
+</div>
+
+<div id="ov" class="ov">
+  <h2 id="ov-t"></h2>
+  <div class="txt" id="ov-x"></div>
+  <div class="btns" id="ov-b"></div>
+</div>
+
+<script>
+/* ================= 资源名 ================= */
+const RESN = { min:"民力", qian:"钱粮", quan:"权衡", yao:"声望", sheng:"圣眷", wei:"危机",
+  bing:"军备", xuan:"玄修", zui:"罪证", ben:"国本", ping:"平衡", yan:"严党势", ref:"清流势",
+  wen:"国势", ku:"县库", xin:"人心" };
+const BADR = { wei:1, zui:1 };
+const AVATARS={"chenhong":"data:image/jpeg;base64,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","hairui":"data:image/jpeg;base64,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","huangjin":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQUFBAYFBQUHBgYHCQ8KCQgICRMNDgsPFhMXFxYTFRUYGyMeGBohGhUVHikfISQlJygnGB0rLismLiMmJyb/2wBDAQYHBwkICRIKChImGRUZJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJib/wAARCABwAHADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDyAadbXMRupoEt4yNokkOBGe/AHzjpz2xWE8cEmkarJAsTDbtG1cEBWHze2aZqdwZ715EufMMZK7VJAUDj5Qe1S63deboMdtZW6Laxjczoh3ZJ6O3Qmua84StI9KeHg6fPE4/B6449at3tssLqsZOCm45NVdxC7c8E5xU95cfaHVgu0KuK6TzSO3UNJtbpg1q+GFDXsgIBG3uKy7bmUD2NaXh15UvJDFCZm29B2pMroaGoWtvBa3PlXwGcsY8Dk+lWfDEMb6YC0Ssdx5K5qCGGKTR9QmlhUS73OSORUeljWba1VbaH903zDKg9ah7DSNDW4Ihp8xWJAQvBCio/DHhHxDr2mFtN0y4uoiTxEq5PuASCR7jiq96dYnhaOaEBSOcLWlrzzWXg61S3ypkMKPIvULtLYz2yf5VDdrJdTtw9CNSM5yfwq/rqkLrPgHxifLVPDd4uwc5VR/Wso+APGvbwxqR/3YCf5VDe6LILq6SOV3VbBL+FmOdyEKT+QLflSHRrhXxHcuM6YL9MMeRjJH/oX5VotEc8vZt6J/f/AMAkXwX4ut5lafwvq6oDyfsUhH8q5+eJ4pnjkRo3ViGVhgqfQjtXQaXJrcc1itprF7B9rid0MVw64K7uOD/s/rTvEd1Pq+hWGr3s7XN8krW8s8hy8i7Qybm/iI+YZPOMelHNZjcIuDcehTtb5rTUEvAiysGJKt0bIq+dWmt/Dk1vbXfk/bHYS28b5GzsCDWTetA8v+jRskYHRzkk1WkHyE1WI5atVyXc0p80KdmVsfxY4BqSeYzkEqq7RwBURJxjtSUziJbfiQfStbwxNHBeyvI20bevvmsu3Ee4NJLsx22k1Ze2mtxE6urwz/6uROhPcexGeRQUtdDZvVjS2nEF9nfljH1BJpsVzLbG0Md6zqSN6HGAKzfs83aVeuPxo+zXJH31H171F0a8hq3V5JcXsgW7aOEKNuBnJrRu7g3XgSbeQTGsa59SkgUfoa5drW4HV1z6Zray0PgS5EhBMt0sa/TO4/8AoNROztbud2EkoRqJ7OLIhqN4DbSboMw2DaeMKTujYMCW564f9BTo726U2a7lkuY7R7KFVQYMTbgd2f8AfOD9Km8N6VqmrWzOltE8WAqyu/lkEd8gHNbU/hfXTdpcLd2Ubou35Qxz+Yp88U7NnGqM2rpGFA81pDbZnhaaxjkitkjjLZEm7dvbI6bjjFUZht8GRlv49QIX/gMfP/oQrT1nRtZ0qGS5uIkniAyZY24X6ism5bzPCNn/ANM7+bP/AAJI8f8AoJqtHZoVpQTi10KbCmSD9030qVgM02QDyW+lQmdsloygaSlNOjALc1uld2PKGVq6TL51vcadIciQGaH/AGZFGePqMj8qbpk9pbXiTXVqlzEucxv0NeyeFpPDOuaW1n/ZtlELmI48qJVeNh3BHIIPNa+y8yVI8WM/HSnLdOq7ctj0BqWcQW0kkCL5zo5VncccHHApbd4HfbJDGvoeetcr9Ds3RC102CPmOfU1t6koTwJYAHl7oMfxD1kX/kR/Kka7z1IzxWzqv7zwTphB+7OB+Yb/AAqXbR+Z00FeFX/D+qOz8GYHhqJE8xc/xRkA/mat2Rv5obh8TjaMqszhj+lZ3ga4lj0cwMmVHTjoa3LO7vbWV5HsWulaQFY42CgDupPXnnntXBdOTR6EUrIwNVlu7nw9f+ebwxxwsCZnXZ0yMAc/nXK+H9D1LX/DOo22l25ubi0miuBCrDe67XDbB/EehwOcA10XifUJ49CvbORcMTsDHG7aTwDjGTiuVsby70rQUu7Kd7e6XUIniljOGUoj8j/vsV2UnfY4MRHd+X6mYfvZolx5Lcdq0PFega34Y1BbLVIUXzF3wzRMHinTsyMOo6e/PIFYjSzFSDnH0rV05J6mTxENSE1JbQS3E8cECF5ZGCoo6knoKlsbSW9uEhjwu5gpdzhVycZJrSVV0m9FsYI5LgNhnlU5iIPUDPBHv+Vbcrauee2luUrjSdVtzifTrqP/AHoWH9K6DwBb3Nvra3kri1ht1LOZTs4/Gu7jnt7rSJtQhlaBpojzHIQBIOvyjjP+Nc9Yarp1rO9zcyO0iW7SBdglE8wxsjbdkBc8k46AjvXPCrNz5bandPDwhT9pzXRzesw2j6zfXNvFOlrNM7wQyMrSEE55KjH5VHp8DXV/BaZg09JWC/aLgEJGP7zEAnA9ga6O6Nlr0r38OnW2kyC2zJHZArEz8ZO0n5cnnC8CqS2sNrt8tPMKHczSHO72Pt7U60vZvU3wGFqY2LlBWS7mNcf2etqB9vmvJzwVW12gH2cnJ/KtDwxq1i6RaBr0cSaVKX23Ii/eW8jA7XJHJAJ5HpTrmyDz4sEWS2ciIKSA43AuQM/xADaCOvHrWZf2fmaiIT5UHHWRtoYZ4+hxx+FUnGSRy1KdSk2vkekaZc28drEAEUsMEo2VbHBKnvyDVPV4rO4Yb5gqg55kb+QNcFLFcWGWWWWKPqpR8oT+GQam057rVL5EnvzawHP7wJ8zHHAAHcnjsK4vq7UnJM7Fi1ZJrU9F8OeCLzx1r8GgQ3/9n2xheaa7ljLiPGBGpyRlmLD5c5wc1D4t+EHijTruLQNOudN1e5t90rQQ3AhnIbHzGOTbwAvUE1NrGqXGm+HdBsdHleAsDNI8OY5HMbHbI2STlmaRiDn7i47V7DaNoPxc8BWeparfW1t4ottsQvreIpMrA/OnGDh1De3P1rRP2bTT0JlCdRN736Fj4o/C6ytdJa70y1821jMTmymbPklFMYMZPYqVXBP8K8nFeJajp2mLp1yUsY93lNt45Bwa+0bya11HTYL+FhcWEiMxkXnAI44745r4v+Oeh6x4e8a6hNZXgOj3MqvsglB8l3XJVlByoLB8dj2rvVRvSRwSUpO55vG4W1S2QBVBXdjue5NQIZ73U4wf3km3jJ5IAPr1NJuCtkn72P0qIACZTx8wxXbU95JGlSPMrFuSae3jZY5JImfh0DFc/UUWEE077YonkPVj2HuT2onu7kRBDMzqOgfDY/OmJcTzIVkldl/u5+X8ulZ+zszn9hP4LnSaU6Q2SQhw29yXYdCR2B7ilvR8iRj+J+foOarSZt4IIsYMO0n8etWrni4jUZOFYjJrwKrvUcj7/B0o0MMqK6W/Hcz1BE8x/vEDFW1mlaaO6uYDPFF8jybQTz0BJ6/z96hCFpG8s+aW5IQE7T6HiphY3T4ItLhv+2TY/lRzcruRKjCpBqXf9QvbTT7lybeaOGGQfvY3zGcjkEcEZ6j8ais7K0a6DRXUUMPmbkVpv9UmeSSAT93rx19asPY3m0g2so+q4qvarHEbm1kjdbl0UqS6qoUNk5z/AIitI1G1Znl18BRU01IsX11NNdmaW9MyKcQRRhv3SZOFDMBxg88HNb/gHXJNL8S2fmS+VbSssZVfupg5Ugex/ma5sQk8CW3J9BOn+NWLXTNSuG3WsAdo/m+SVMjHfrWUpNnoYeFDD/DK/wA7n2P8M/E0upeFkt5YFSW3bYwA4dOxA6YI4rxP44f2XH4f1y6juEzfahDFZWgXEkOxVMhb0XCqoB7rxmvUvCYsbTR4dahd44Z4F3rKRnKkgjj6frXi/wAdmm07VtUsjGkUkrQ38cjoG3kW8SMhB/E/hXRQlzVVzPY+drWpJuK3PDJz+4DDqrUbQRCRnI61Y/tedjtfT7KTPY2yjP5Ypy6tYlcTaNbls9I2dOP++utey5wcr3PM9prqipcNuOBVzTIt9xChH3mGfpSi90Fz+8069j94rocfgyGp4dW0e0kEtrYXUrgED7TcDH5Ko/nRKas7PU2o1oKqpT2NHUQz3cyICzsFICjJPNSXisP9I8xCu9oFCt8wfAJ49MHrWFfa/d3JYRhLZG6pAu3I9z1P4mpLAOWtIpGZQC0xVhjnAA/QCvJlQjCF5PU9yOZTr1+WlH3W1udLeRTSiRvt1xaxRLFs8pm+bKjCgAgdjXNaiXhuiJbuaSIEAF3Yg5BOSM5x04roJmeCZJluU+e3RTFIu4HHHIPHb65rnLu7We62xwrdDducOhXJHbAPA/xqKF2cuP8AZ+9FaNMktLOa/ieaNoRDEwDzTMsUYJzgZbHPHQZPBqrNbW0upLbW1556udrzCEqoP+yM5I+uK3rCGL7JCwLG12uWjfBEXcKc9fmx7/nVXWGHlSNEFEUVwJI/KQoqhuSoByQATjv0rpUkeaqEtG9iCdZbD7s9vJIOZFRfmwOhPb+X1qpem6lQ3UcWxAc5UYHPf3q/cwXP9nSlbVooX5PlKxXP96STHzf7o4+lTFB/wikjyBSVdEdg4znLbTjrtIwM88g1MlbVIhpc1j6Q8L6zqurw2t7eabGulacPux8AshXJK+pJB+imsL40g2fjqC5uLO3v7a40YySxzhcylPMjCpnoSShJA4AyateCdQ/su9urSaZSbgBIoz0JZwD+leseLvh7pXj7SIlkuPsmo2QmjtbtRv2CRdro65G5eQeoIPIriw1o1Nep6eL/AIaPl6G18I2p1m81eCzaOOcJarCwBULt3qNjDeSRgbR0LEsOlZcM3gmXwXHJ5FtZ6mkiiQzQBy5DoSBhy2MOTuweFK7elXfH/wAI/Gfg7fLeaWdQ05el/YAyx4/2h95PxGPevNXiRjwK932cZq8Xc8uUL6pnrOpL8OLjxNZNbDS4bQX670lyh2ZcfMEBUp/q8Ae5JHNLFp3gldb1CI2NjDGPJa3hMyyLjEu4li3cgfLgk5XoMV41KpQkZ4rU8PIkl/YxsOJJmU4HPQVzOLTszNLWzPSrmz8KWunXyzWumJIJ5Fh+UNu5k2DeGyOB2IH3c9qfe2miJaWYhS1mkacM91i34Uxp+7ODu4Yv8wHzMuMAEGuT8TWrx2rxPgy25K5U5BHYj2NZyoJdVtpQBkRhv/HRXDGreN2j6SrgOWranLR8r+89Cv4tEeewtWFrDazW0aySG5jDI5lVTHx1YZbMg7EnJwafpWl+Bobm5ke2WS4fMiKt3GFXdEuVQAjoXPy54I4Py1wHiJlSfTjgfJEpGen32IqK9s/Ntp5nUAxfNsYfwkcE/qPyrWlJcidtzycVRarTje9megyWvhWx0mK1t4raWdo3lebzxImI1yNxDH5iz46cqoAAxk3ry58EXM1jBMukiB1ZmVYzhjtADMR93kt1xjHtXjdreGDO8yI8LZSNR0JGDk9sccYOeasPfR+RcXCqkTTAqka84z1/rWlmmYxalGzkzv8AxWLSTWon0W9jjjjg3W32SUAlNxw2AcADIUAgZC9Kqan/AGZqnh7VHhB+3+XBLLG7gLExJLeWOgBweOvOOeKwvDptLe2guJnkV5VaBxEvzAA7gwJIAOGHU9uld9our6Jrmr6gdR0yxa2ltUgiBHn7NnyK4x/Eep46ms5z5Lu10UopwS6n/9k=","jiajing":"data:image/jpeg;base64,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","lichunfang":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQUFBAYFBQUHBgYHCQ8KCQgICRMNDgsPFhMXFxYTFRUYGyMeGBohGhUVHikfISQlJygnGB0rLismLiMmJyb/2wBDAQYHBwkICRIKChImGRUZJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJib/wAARCABwAHADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD5pvtOityoWR23euKZBYRyDl2H0rQ1cfNH9KbZjiouayiiAaVDnHmv+lSHRYwhYSucewq9tPUCp7eXgo1FyLGMNKh/56v+QoOlQ/8APV/0rZeNeoFNWLccAYouFjKTSYG486QH8KRtIjU8yvj8K0XRkbkUm496LsaSM4aVD/z1f9KlTRoGXPnSZ/CrmakjbbRdjsjJfSUXrI/6Uf2XCf8Alq/5CtqQqUJNGm6ffavfLY6ZaPcztzheAg/vMeij3NLmtuHLd6GKdKiH/LR/0qwmiW76fc3S3DkwleOO9ew6J4F0rTIkl1WMarfEcq2RBH7Bf4vqfyraS00+NGg/syzSBusYt1wf0rCWIXQ6Fhn1PCNZ4eMe1NswSpI7U/WuXiyMHByPSnacpMRI9a2RiyxGwyAeKc8BJ3oeabICMcUiTMh4pkEiSYXDrg+9CvhtwpGmVx8yc1Ecfwk0AX2MUq89aoyqisQGppk29WqCW4iHU5oAczqvU03zgT8gJqu1wh+7GWpRLKeAqoKB3LAM0rpFFGzySMFRFGSzE4AH1NfR/g3w1b+FPD0do8Ye+mAkvJgOWk/ug/3V6D8T3rjfhl4FaysdP8YXt1C93LG0llZSAjYSPlkP95schQQeQfau/wDN1GTSre61HakrL+82JjDcfeUE469Oa460+Z8qO+hHlXMxk8sCB2kUY9xzXJ6jfebckRrsjHQZq9qOolU8p2HzHGCK5bUJ0jJkd8DOBWFja99TmvjNoB8PeNrqzWNktpz9otyRwUY9PwORXIW+5IxsbFfTP7UXhpLzw9DrlvHmXTZRuYD/AJYucHn2bBr5rjwBsIwR2rupSvE82WjHiZsjcOD3qcAsMqVNVSqkHDFaQM6dQHX1FakIsukmOi1WdJs9QBUqGN+jFadJAMZ8w/nQOxQe3ckl5AB9aYfITgguallCg45aq7bj90AUCsBkI5ChR71t+DLMal4itbZ4o5t4crHKMq7BSQCO4zzjvisOOPJzyxqa1v7jTNQgvbZ9k9s4kQg9x2/HpSldrQqNk7n0naRjUdOi1KcpbxOSTbb2QW1yrAYRf+efAIB5XpW3No66x4e1W40a4NlcPeC5Kod0MLPhQGB6g+2MZ44Fcp4q1jSpJU0u1uLa3ku4ReCKJyyEyLvO1u4GSPwrV+F2vx2PgjXLO4tPNlZBGhifDylc7dowfb5jwO/pXn2u3c9N3UVY4L7Bfx3Dn7ZHdAff2Qsqqe4BycmsrWZ1SHDWUzYOedo5/A1eutZu4IhFfSjdzkp03Z5yO31H5Cufu72e4uDGFyh6Y70RVxSsj7D8U6ZDq+iXenXCeZFcRNG6f3lIwR/X6ivijxFoVzoev3ek3RLS2zYSTGPNjP3XH1H65r7rlxkeo6V4X+0D4T861j8R2cX7yz/120dYief++Tz9CaulPldjimup89ywGIeY3APeoHjUfPG+1vTtWrqQH2XFUfs+eRyDxXbcxSuVVmYHEsQYeoqxG+nsP3iyKfSmmx3k7SQN2KoXcTxzmJWzjqaLj2Lc72YOIlOPeqUskYPWoNjc5JqaG34LP+FMBollcFYhgetOgtZJpUgjUyTSsERRyWY8AVYhAQkgcCul+GN5p1n4ztLnUVUqhLQuxwEk7H37/pSbsrlWPZrnR7caR4f0y6trdr7TLaO1SdFAfhdpIOM4yTVW81NNM0U6RZ24t0iBVQnf6nuag8RSKhtdQtL2eO7b53OQyMA3Tb+GKz9aljvEmv7c5VsEr6V5256Gxw98HkkZpDzmsx2eI4iPXquf5elX766j8xsnB9qyXmJkLr0HStIJkTZ92s29VfBGfWs3VbSK9s5reaMSI6kMjDhgRgj8RV1dyllMu8E5HFNYZrnuYs+NfHeiTaDqt1poSRoIXDRSFTzEx+Un+X1BrHhX/RBIR/Ga+iPjd4J/t3Tft1kjHULTMkKj/lqOrRn3OMj3+tfPMZ/4lEZ/vMcZ+td0Z80TK1mMhHCZ9CxrBnLGeRmGCSetdEVYK5CFgoA4FVfENuJHW4ghZVdQSp/hHQVrElmJEMtirEpxhRUkNjdxKsskDBX+6eDn8qjeKXcWMbgZ7irJGOSkP1Oa2fAeky6z4ktLaMEqrh2OOAB61m/2dqFydtvZXEpXAKpGSRnpmvSfg/YyaZqFzPeRPDc7GURuMEAd8duaznKyKim2ejapotmlnFBHyYi8rOx/jbrj246VwmrW8mnWt6Y5FIAKgL0z9K6bWr+YI+CV3HGK4HXr1VjHmPxKSv51xx3OhyZkyeVcEJDCqk9SetZN4yI7Rx8hTjPqa1I9tvp89x1kddie3qaw4laSQIgLMTgAdTXRFCPvyVncFlRFzx90ZxVInGR3HbOcV518JvHMGq+GJor8yT6lpSCK4VWG6XA4Izjk/wCNdTY6/ZXd8YI7W4tlk5DzsgUtx8vDHk/0NcdminaxoajEs9u8R4Lfdb0PrXzn4/8ADEOnaw11MUispZS7xD5czE5KDjgHls/WvfLbW7G81a60qORfOgICtvBEpxyF9x0NeceNPEEOoyXWnf2UhZCyrM8iupZT8r7SOcE9PTIzVwUr2Rm2jw/xgLiWS0nS3S3SYyCJYiMFRjA4qrpcNy15bvIysI1LnzB8oVfvZrpL+21DWvs/2+3tbSa0lnRzGWj83bt5C84wD2PQVJYaPJc30mnwS21rNEP3jybigIx/Dnnrk9feupRdiG43MXw7axTyXKkJuj3MIWXcWA52gdT/APrq9Pa22rWZkktY7GVQBFLaxGISPnHlspOD65XpUP8Awj19ba7OftkcEkURmE6yEZcAbiMAkHnPOKddw6lNcQtfXbTTzYjEk+flyhbcAcAKNpz06UnCV7ouNSCVmNu0uNE08zGZmuHb7PaIBkliAWcHqdoIA9GYeldd4Ls1tNONzI+6aYDcw6ADsK5LXbEXP2TUGnCaXFGsVogVxvJ5bLkYyWLMxHTIHpXc2dxDYaQkBgjxbIQxjYhcDHTI/wBoUOLsJtWumW7+AyQoGOQx3tz0ArzfxcBHfwwx5Iz06967fVdUk+y/LCqKTtLF+F5xyccev0rndL0iTV9QklEkQaILu818bix/Qf8A16zjCSewuZWOV12U28Ij+YnhEB64A61a8M2GrXA32OlxzSnq8tyicewPNTy2E19e3QJSTaGUlPujB7e2eK6u0um0exOnWtu73+D8uNw4yCfTrkVpzWVgtfY4zwdrcel+IZNWuYxLZy3ixzRsMqVO7nHfFfU1zp3hfVNHhvY7SEq4Gw26bSWxkfdxkgjI+lfFk+r27wSQpA6h7lpuSOmMAfzr074f/GiLw7on9lanptzfRqMI8cigqO3X0pVKUm7xRVOcLWkfRUXh/QbizjUWKKuOWiYqzZ65Ocn8enbFK/hTQGh8sWATEZj3K7BsE5655PJ5rxu2/aF0aJiX0HUXBAyPNjGD7e1Wx+0b4f8A+hb1L/v/AB1h7KsugOVPoavxE8CX8873+hXqQncRLDI2PPUhQAHxkMNo6nn25rzS+svE9pLO8lnqcMzqN80dqXIQY4DgHknrtPTrW94g+P2n6lbwww+HbhAkm5syqu4fhnmqVt8b9Mj5bRL0H/YmWtoxqrdDvTtuY15fSRWlpqNvdyyXM6lLh3/2WAwUIyGJxz36VU1zU7rSbKLRLa536lJLmWXALW6kjEW7HLf3vToO9anif4taFrVk0S6Bdw3SfPb3QlXzIZB0YEdR7VwA1zSftKXZ0+4SYfMwSQbS3rz+daRjNLYIOlzLmeh3SPd3TW2nS3UksEjhCkhBXsSfb7ueP6mvQ0021jtlBMpzljkjr+XpXj2meONItL6G4m026lWMk43KDkjFdLN8X9JYYXRrscd5ErNwqdjoxVShKf7u1joNfVNOsRFZyOMqWKOdwcAfxAjn8a4y+ujp9tCS37+YlhEqL84znuOAD/nFVdQ+I1lePIW02chlwAXXP0rEuvEeiX87TXum34ZwAwiu1HyjoBleBVxhPqcbcLaHVaZ40tNMikE+kRanfSk/NHiOIk9sAc+5xyau6BLPdajJc3cSJcXHKrASMf7Iri4tZ8HQyebDYa2rgcBrmFh+sdTN40sgPLtdNntUPDy+fvm29wrYAXI4yAD71UoN7IUJLZs//9k=","lufang":"data:image/jpeg;base64,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","shenyishi":"data:image/jpeg;base64,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","wangyongji":"data:image/jpeg;base64,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","wangzhiqing":"data:image/jpeg;base64,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","xujie":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQUFBAYFBQUHBgYHCQ8KCQgICRMNDgsPFhMXFxYTFRUYGyMeGBohGhUVHikfISQlJygnGB0rLismLiMmJyb/2wBDAQYHBwkICRIKChImGRUZJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJib/wAARCABwAHADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDjLmLchPmZOOntXMa9bBZI57VCo2kS7M8e/tXRYYR8sffFc34gvJrPy3tnKHcchuVcY6EdxXnUld2PSpzdOamuhlWLOWkG49R3rde607+zdLsvt0MV3HKzSK5ICg9MkDANc9Pcra2xurMHZcHEZPPlNj5lPuO3qOayM7gTkk98962jRu22dmLxsZ04Rj01Pd9PljZTHHMryRgB1DAlfqKvSSSBdp4PfNeUw3rLpujayqq2wPaXOf49mOG+sZ/StlLvUtKj1K3junlGl3ix7ZfmBikztzn3A/76rmlRd7o4o1+6E0B8eMYAScfaeBn3r17xLvk0q8VMgGJsZHXivJLCW0tvEUN21s4BQXkQWQHzFxkqc9+G/KvULnWtP1bRJZLK6DM8DMIn+WRRyOR9eKxqRle6PXniaVWlCMXqkeEwSMLMncQQcc063Zms5MOQd4ptqP8ARH3gt81Pth/o8nHRxXRvZ+Z1QfuT/wAH+YodhtGe3rSCRuMnHWnKUGDg+nSmfL3U88Cupo+Xe4u9jtJY5z0zTZZHZcbjjPrSB19SAPUU3KHncBUWGtTpLy+S3LpIpJHGBXK+Ir1bmNIgvKHOa6LX7Dy7f7azFSOoz1rjNUfcAV69zUUVFu6NJpcl7jLCeFWktrxj9juMCRlHMZHRwPUfqCagnt5rC9ks7gDfGeo6MDyCPYgg1ERlsAVrPDHfaVaXVxOIPsTG1kk2Fiy43JkD/gQ/AV2v3Xc5dy/oxNx4R1q02gmCaG5U9wOUb8PmFdVftJNcamqxnF54dtbgAY+9EE5590PvXFW+lh5Q6XDLb95ZYin6d66C10M3U8dna3kn2qT5A8zfJgDJU45A745rnk43u2awpzkr2N3TFim1LwKWKgyp5TgAYKiZlwcdTgkdM0ul22+KyUhtxvXtvlODhlXj161b8NaX9j1Gwu01C8nl0ZsozxRpFHkliArYbGSTk89+KlaM6Rd2TTTfaLSK8e4+0KMOrMg2oyDlWJXg5IOeKwVSLdkzSVCpBXaMF7WOaCIRxJ5t3CzIYxj96ucj8Qv5muetXQWcj7gV3iuwsdsUumzFVaOw0qa7nGfu8TEA/nGPxrhonMWlux5wVGRTluj1sulKdOtd390ladC3PBXpTVuELHJx75qr9pQBSxAyPSpt8R6sB6AiuvTqeFqSCePuQaSWWHouAD703Fs3zCRMe9JJbwBcpIhz3zRZBa/Q1vEt3Isv2JixC8muWvyNo28fN0Nbes3i3Wqzy8dcVh6iy5U5wBnNRS0SjY3qJctytnDE9q0tMliW21O3knEZkhV4UPVpVYFcfrVGKzvLjaY4JI4nXIkdcBh3xnrXY+AvDNtd2J1C6UsrSMEHqBxTq1FGJjTg5Ssc3Fd6oSGWWcn1JrXsk8SSx7YRdsvTIPP59f1r0hxZ6fbF1tlAUYwFyT9KE8QWUKK1za3UcJ6yCPKD61y+3bOr2dtG2cxa6r4r0iOKfVtKlureM5Et5AZCBzx5i8jr3zita08R6NrbI1wbiBMCJ4wqzoV4/iGGXGARxweR1NesaNfW1xpUUmnOk8TrkgfwgHnj8a574kfDqz17Q313wxaix8RWamUiBdq3agZKsOhbHQ/h3qb05v3lZ9y2qlNe67rzOA1u0e2029SDcq3kXkzKoBIGVYAn0JVfyxXCHDaVIT1LKeK6LS/E8mq+HZo5Vb7RaRu7L1CbY3x+BJHHYiud2ldNlXPK7ea1mnFxuejl0oyjV5Vb3SlJABHkEE4pmX2ZJ+XoaVjKydcj3pBEdv3iQO1dPqeLL3n7pIsGRyc/Q0wBgpA5A70qs+Dg9KFRyhbOM9qTVnqNPa25NqaiPUJUfsxzVNofPuoE2hovMHmLnGVzzWrqskMmpysnOODnvVGFPMugi4JYYUe9KF9PQUo31ex1etTJbwyRmWaa+it8suPkjZiFVR6YyAB7V13h+3Nho9nZEYaONQwxznv+tchd3VvPBpn32lG+4u1bht6fIqt7hs12GmOZNMt5OckEHPXqcVxVLpWOpNOV0Ov7GeV/ln8oMOHIzg/SqmlWni2znvZ7fU5JjDCDDbNEpS4O4blZSOAFyQQecVqQTKYzDP8A6s9eaivNUjsZF0+0vJnYxl5A8oVIYu5Zv5etRTk0zTlbW4ulaqNOsr7xD9klsrZ7hLe0to+katl3Lei/KT+VdT8PfFn9pzXC6R4gkjnizMtneREpOif6zy2I+bA6gc0nhNbfXbG70ixlgmaeEzRMrBlVk5BPqOoPsTXUeF9O0yz0U3b6OtjfWaTSCMoM28jLtcqehDYHI64FJNK7aCpdpWPBfD3hO7bSPEGrG2kt/PSQwRyfK5jZs5Ze3A4+prm18sWkiNyWwAPWvfbhFNhqsGfnkhf88V87o4bkg7lHI9adKTrtyZtGp9Ui4w6poUwwkDaCCKkS3TGMMfcUrYVtpXkjOaUO3UDgcmu5nlJ6hLa25UbFYH+LNRLbxqpw7Y+lWn3pGrvjDcjmms52ggZBpWGm0Zl9t+3TKDgFj1rq/hZ4Jfxjqd4stxLbWGnxb5biL73mNxGoz6kEn2FctBby3140VtG880rHZGi7mb8PT3r2D4XeIvD3g3TZtE1qafT725mM8lzIN0TH7qgFc8AevcmtNUrGclK10cf40s00XVnsrnTpoNTuGBaYHMcoz95T3zjmunsJFigESnoK2PHM+j+NdGe40LVYbm6tZA8J6YYcY552np+INeeadrSSRbpA0U8eUljbgow6iuKrCVkztoSUtGdRdSxKUkdmHP3fWsfUdU0G5lEF1aCeRiAwPGR2Bo+1vcKRCQEKHcxIJPHaohoUV0/mNYwyOe8zEb/xqIJLVmk23ojs/COk6EsE8eifbdL1ExiaylEp8udwpJj57E9vaup+JGv3uneBdPskLR3Opz+XJKnDmKMK7/mdi/nXLpo0mk2On3lsLrS5I7lALZ5vOgkVjgNGeqndj65PpVT4t+IItQ8R22nRkINLs1jfsPOkw7/kNo/A1ajzS3IbcVY5vUfGGpQW7LbweU8g2GSVtxKnrXHszgcAc9XxWp4iMcscWyQEjk4PSsi2Zx17dCe5ranCMFojnlOU3qPtzFlhKWBAODineeZLYxttJJzjHNRrJKUO5cA9x1zSZ2kO0XJ5yOhrQkldNsSOV+YnCgVZuJJHSItCF2rggfzqCAk7Zdn8WADUl27yXGNw+brjtQnYDpNG1/SNDWX+xtPurclcZmTmXrne3p7CuTnX+0ZTN9sRp5QESNjkoc5GM9u2PepJ71uTLaxp8wwoctnPGelXU2TwIrIRMP4JY8nHqD36fWs4uUdTvlhsPPmUZ2t3Oeayure8/db7G+i5wWK78HnBpbzVJbu4F2ybL0LsuBjAlxwGI/vetdMYYbyLNsWeKcloI5W3eWw+8oPVWHUdiOCKxdU0me5aKeOMxXJQrKG/idev44x9a1jNT0MK+Dq4ZKUkRWlxK22ZHKqB2NeieDUZ4y9wTK8qngDPB7f59a8102FnbyxKkJYgMsjbQO4OfQ9Pqa77QrPUjpk0ljOPNRdyLHIpUgMAASOc9OAOO9TKCTujnU09Hudl4u8Qz2XhxVVreWey/dQgjIV2br77Rz9RXkU15c311NeXsrT3VxIXlkIxub/IH5VHql5dzzmK7V42jOfLcYIyOPwx37020ViB3G7tVKPKrlOV+o1QDA2T3pLebCSIwGU7DvTGB8qYkFgH4PpSIFVBMoJk6D6UdNSPtWLQdeFc7UxzjrUY3jcyvhPRqjjDGJSEA560pV2CqW3E9h3qRjzLKdmNoHYClXK/M6ndnqDS29k8zMCNu1C1WLZovIffhcDAwOTQxbEsr2MlqiI4FwhaRrpm/eD+6Mg8Y7AetbfhPR9P1yCKw1GO6iuXmZoL3ymxLuUDDg8sAcEMDkZPWsu81W+0x1mlmRpSnySfZold24yAwXgD8+nrW1o15qcaRatcawYLKTiZbiZmiuM9gH5yB3UDHrUNe7dM7ZTi3yuKMbUILzS76e3uEeO4t5cTpIm1tynAb698jhhz61buYbjUpYRaRhZbqKSWNi2Ns8Kk/TDIduK6vxLDJrvhdpX3yXWn4nhlmwWaDB8xPMHDgdQD6cVy3hm7+zWGpEqHntUzFk9N3yk4+mKx5lZTR7eCSxMXhqj80zLMFv5UWq2kVwxkQRyxsECsMEScZye59QQDXUeD55bi5SJGkKJL5qPGrJlhgOR9SEYj1kqtb6jNYaxdPHa2moW96gu44p2MeFcbXA29wRUEWpWlh4ktLryrm0jXKyhf+Wefl3xkHDFQUPvsxWyk5e6/keFisK6bemqep2PjXwxpF/e22mRyJbXEiSRafqCofKYrJujRz/dYO6cfdIXtXlghurG4e0u7eS3mjYq8brggjivUtRj1C40zVo9X8/XHjtd1hMjKm1llDLJCBjggtk4zxg1i6xolzqemSX97O82uPPLM4EgYDCgeST3IVPvdznrUwm0rSY6GFnXv7NarU4OLYYpvMbgN0pAYxGxCkEn5V9ajJDQllPVgRg01pGds5BPQY6Ct0tLnG/iuSSEoiRDhicml2bOFG4ryT701RtZRIw55z6VPAy+SxByAxzzU7sY6C4cD93klhtYD0pr7gpKjHPH1pvmxtbvJGNrFsbfSoIJGSTLsdoPehgf/2Q==","yanmaoqing":"data:image/jpeg;base64,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","yanshifan":"data:image/jpeg;base64,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","yansong":"data:image/jpeg;base64,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","yuwang":"data:image/jpeg;base64,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","zhangjuzheng":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQUFBAYFBQUHBgYHCQ8KCQgICRMNDgsPFhMXFxYTFRUYGyMeGBohGhUVHikfISQlJygnGB0rLismLiMmJyb/2wBDAQYHBwkICRIKChImGRUZJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJib/wAARCABwAHADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwNsm4kX+9kU63i5UMOM5NXTp8hk80yRhCNwbdnIzjPHvxW74f0yOXXLCK4gjnhMqCWMMQWzn8sYrCU1FDjByZahureDw6biVv3UOdxHt2+tZDeJ7ifSX1G2so3jhkEdxGWO6Ld9xs9wcEexHuKqeK/IsfEOraBPK0NjJIrQzISfKBAZQw/iUE49Rjj0rL8NsNM8QtpmqP5VreK1ndkP8AKEf7r56EA7WB9qhRurlN62J3We41GFREC9+vmWz5wHySAPY7gV+tWrHUkmtPPljKCKRY5sHO0N0b6ZBBqo00VvoscRnjXUNKvy0WDnzI2wTtPQgOmf8Agda0ui3bnxFcWtncvZXCCS1KxECbMitwDycAt0HalJrqEU+hJ9ot9htl3JNI5hUMOC/pn3yMV7n8FNSTVvBOoeE75yZLMBrfIGFVjwPwbP518/XpWWC4mhlEjxmzmBU9H27WH1zxXc6F4oHg7x+t625bNZnhvI/vHYT7dSCAaxqQc48q3Li7O503l/2XqV7ZzjDxHzIc9Mg8iptc/cXdjqCqysww3qCeVNdF8WNNVZbbWbZd8dxGJyyjhgQNw/I5rDmt01Dw6k6SfPCmBg5yOq/4VgmmlIVrNxOXlU22uMi/uobiRXUsPuhuv8zUXieBf9JRlAkj6EcD/PBqbVx52mxXav8AvLZsHJ5wcY/Wodbcy20V1uWT7RGQ2OADnI/r+dbq90Z6O9y7pNyH0a3uyNzRgx8+o4/lWKJvs3iCQsBhwP5U7wldSbZNOcfKshYg9uMVX1SJ7jxFZwIyxtMyJukbaq84yT2HvTjD32u4Ofuple8lD+H7S6trllEL/ZDbhsBVUlgQvYZII9zWj4YNnd6nY/NMtwLhmnEf3pTtPzFs9Bx+dc9Fo2s3mqTDU1ksrh4vNcOoBYBeOn0q9ol7a+F3m1L7Kb9mPkbHfbt3ckgjvxScE9Ezp53u1oZfxsSD/hNvtFtGY4ri1jYAjHIyp/lXNWvkXmnR/a8ZtW8lZWfbtRgSN3GWAIYAD1rsfi7EbzR/DXiNbcW6XiTRGLzC5QhgRn68muE0WCe/uV0uCMObx1XcSRtwc5/U9a6Y/wAJPsc7X7y3c6Sx1nSdORBaWZuvJIwksY2yH1Pf9K6DTfGayK7SaDdybvmeSNhKQfqVBP4k9K09C8L6Vo1wv2mwub6TqfLiLgfh3r0rQbizukZLcMDGMG3lj2MMDP3fwryatWnL7N/me1CFWP2reiPHbo+HNfvGuLZ7i1vjy5lURBm42nG45PY8gnA781k6rbTm7njuXMk5G52bOS2TnOe9ex/FfRtD1fwLe6tYC2tta0xfPSWIBXkUctG/rxkjPpXisd5Lcw2tzcSM85U+apXG0ZwBnvxzXoYV3XMtjzcVZaNan0N8M71vF/wqfS7mQS6lozeUfVk/g/NePwrnvDyrbXN3pM8hVSC0YJx9P6iuV+CHiFvDvj+3t5JQtjqg+zTb2IUE8o31zx+Nei/E/SW0jW11S0XCklz7qfvCsKkOSo4LrqjG94qXbc5Ka3d/7Q0/+B4zInH+ehrnrSVLnSJrN9wmhO5fdeuP510+sDyIrHUYpGKlQWYddrcEVy9+403XWZVVoJxwfrWkHdENJGfYXX2TVnZRlZlK4P6GrnjRPLa1nKKwKElWGVYg5wR3FUdRtJC08qMC1sQ//ASa1NTlt77S7K9mVpYInBljTgsMcrntkjGewNbL4k0Q9mmW7fwxqlz4hm8SeILo22jwBrg3KyczICSqKvYngVF4XtbfXdQur2WzWKCK888WbfdyQdoPsODXqGmadFDp8NjpRtryxa4w0nzRrOWJYrIx6456DtiuV8Ju1z4s1951SYm7ZDGvAJAwAMduBXNGV73Otq2xma94Ys9R8q0nhM7lzMkW8hWIHIOOcYJPHpXLfD3TLG38V6m1rFJ5ECCOMS8lGJyRn8K9n1C3gtbqIC2V5WOwOpLFcj5gPTiuCtHj/wCE01632KjPdq0ZH/LRRGo3D8c/jWFWUuVpPS36nZQUXJXWtzU1PSU1NQLW/vrS56Ytpimf8+tbPhmF7XUwJb+S6vjG0TXEh3GLIwAD3wD1rJv5xYQPduxjSMEuR1rC0bXb261yPUdC065ms4PvWs9wse49WdSR174JxXJFSkrLod75Vr3O8OlX+neAPFVvrF/FfNLaXAO2ADau35TkenPJznI6Yr55lBJBHAYZFfQni7XbaT4L6zqtjdNMuqS/ZI/NUK8ZdhvRgOMjD9OMYNfPyhWQEHABxj0r2cHdRbZ4mMs5pIIEeeVFzgr0I6ivp7Rr6Lx38NYriVA9/p/7q4UdSyjBP/Al5r5nTcg+QYyOtel/ArxPHofihtPvJ2Sy1VRE28/Kso+6x+vK/jVYqm5R5l0MKTSdn1JbeN2Fzoszh0t0PlE94yePyzXKa2jy6evXzrR9kg/Hg16l8TdJOj6xDe2kRjjwSZEGQYyfmBHqK4e8jT7W+07ortShb/aHQ/iK56c72aCULaMoaLHDqV7aLcAmKdRE+M/jkDrgc8kevak06JLgXulwRARS/NBGMjBI6ZYnv3Jp3hTTZ72W608o6rAsk/mIF+UqjNg5wMHb+VTiB7O4S5n8skSeWxRgykHpyMg4rqlorGUdTMHizWfsq20d0kdrEzGOKNdqg8/MfU/Wtf4WXrW/9pXDyYlLko5G7Lkccd+aZqfhXSdNgQ3SNaRbMPJDN5gLZ4xn2rHbUB4LCXltPFc20kvm2U7x7jc4GCRGSPlBP324OOAayjyyVoo6HzJ3ketaNcz3K2ltPLcLeX0jb5iMhz1Zcfw9MjFeMfEW11rwzrTT3qLBfyu6EoeGQH5HHqCO/XIqHSviF460XVP7U+3RolwRcJBPCjxupzhQAMoCOOMVufELxvofjrwsPtNnNpGrxt5sEcx3xyY4bY/17HHSpVPl80aKo15M4j/hM9SmWGC+czQowLKf4gD0r1rwp8SfDy6xYSeXNDboczyFeUAHYDrXzyDk4rrfDEASPc64Lg7f5UVsPTSulYujiKknZ6o9O8Ray3iO01mXTQYNEtrprlLNlCmXJVd7DscL0HrXE+Irezgube705XjsruMEI5yUboRn611XhOKNknsJWjjXU1NuJX/gyQSf0rl/El7aDSItHgiIntLiQPMf41B+X6U8O2nyoyxGruy8kME0ETouPkGR2zU11pMMGmNcpIzSkcY/hNdD4V02xvfD9rKyZkZeTmpJdGES3qMf3bgBc1rdpmKsejeGNTHj74aK0zh9W0793Oo6syj/ANmXH415lPbqXuLGNiQnzRMRgr6A/Q8VD8Ldfl8KeMQk+fsd3/o9wOw5+V/wP6E12fxP0RtO1A6rZr+4ufmXb0Ddx9D1rlcfZVeXo9jRvnjftucTp9xPBevd21l5lzMphacvs+zq2ATk/KASOSxwVyOM5q5rwiuYCum25hgwHaFX8xVPqhxkL6A5x61L4fuoLa8a4kMcXm7SyM0jNMQ28AKvGAUXOeua6HTdHS8+Z9SntfNRWmntSwLk4Yg+YScjJH4V0zmoxTMqcHNtHiM6T3cEVu08iwyybc7s8AZIAqC70nfcvsKSuIQytLnscdjg9OlTXovL2NIYU8pEYeSqr098nr71VuG1i2njFwAhmiK71PLrn5voaz5ard1oevCWCjHkmm/Mt6zeW2ranbyWGj/2en2ULLbbx5e7qTGOw5GFOaz7XSIDcTR3IaSCPy5sxE7hGXAcY68A/wAjXTuLSWCC5hC48sKP93GOao6zDcR2NvrVqz20tpceRI8DFSMrlTx9CD+FRRxKbULWNsZlE6VN1oyv1+Rxur2TadqU9qWVhG52urZDL2IP0rZ8NXDliryEquMAnpzTfFl1BqJtL5LqWSd4tssMwyyY6HPQg81Q0mXys47sK65q8LHiQfLM9t8NQKmkC9WPd++USCRFYKFBYFBn5jnAPQgZwea5HxhoNk+pG40u4MrzAGW3G5Sjnced/TO0kDJrai1+eHSLSy022Bnkt1RpbgloYfnJZlTq8hAAGBhVJHJY1S022ZrqX7arG5mLSKWXywXI4O0Zx8o2gdhXKq3s6fNsz06GDli6yp2uur7HY/D+Mx6JBbPEyOiZO4U/xYZRCYYFYnqzDtnpT/Ds7wyBI8tFPGDGrfwsOo/WtiWGNo3EpDM/LH6U6NX2keYwx2Dlg63s73XR+Rxdh4dnktJJuHkYZAx1r0vwxOdf8JzaJrS7bi2URoeh2j7rfXsa5Ww1qxhhx5oDLkbTwQa2dC1G2e6V0kBc8HBrjxNe7s1qKnTXLoZU3hkWtwUHQHIJ/hNOTTlW+jeRiVIIIB4zg13Oow+bB5rcHHWuJ1S/gtywVsyL2rL28upXIlsef3OhySXN7FbSi6e0m2SyRc4weXwO2CP1qDVbB9W8LpIiFLy3RnUDliN2MH8s/lVS01MWZk1DR7e+ttQR/Pv7uRvIjUk9Gk5BVjn5Bkk8DNE/xBa709ltrdEv52Zbq5CBY2UnPyr1HJxzxhQcV7MXJ7o5pqK2Zz/h67/cSW8o7nCntnOR+f8AOuw0u1+2+EtRi27p3YSrH3IQHP481wkckdpK7yW7/aJm3xSeZtXaRyGXse/tXY+DNXtobxYb22unVsIv2cbsk+ucCvPr0XzuUT6jL8wpRoKnVd7aaJsxtX0uyubH7RFZi3lZQdgY/Kccj86460HlzFT0OK9L8R32j6fJskmnV5BujjeBlJ546gVwurafdWV03n2zQjzCvPbvj64IrbD86TU/kebmksNUlGWH3W+lj0nw0US3tjGoEgV4y3fkBl/WtPUrYm3W5j+9bsAfdTyD/Suc8M6hAk8Uf2aW4UKrNtYIAe3zH+VelHTVm0/zYNOnHmx7gkc6SEqDg5BxxXBUpScrtnv4TMaFOjGKT07L/gmZotyPMtkIw3ltcKx/i+baw/lVzxBfeVB9mRsT3B2IO4XuayJYY7HxF4fsFaZfOjmBS4TY6g8kY7gdcj1ouLNpvECXjSZjYhgpYMV9uCa6cLHk5uY8zOqtPEKlOGu/6Eus+EDLpv2mInzPLycdziuJ8JaxPpOqPbytyr4+avZdQ1e1t9MK5A+WvnrxNODqUlzA2Pm7Vi5e3k4M8ZNQ1R9H2eqi8sVkeUElfuivOPGP2sSu8Ywc8EdxXMeEvGcdsiQ3TncOB7137Xdrq1uCoBLCuTklTlaaNU4tXR57q+iweJ7Q3VhrU9oY4JGOl3Rcos8SFiBlsR7owSpHBII46VykFrpsD2scIuZ2mj3zqzKi5xyBjJ9Rzya29ES51a6XR9SvrtY1mQPGqIdtwegyAffjPrUXjCxH/CSW0dtatp+o26+VqFuly0scUyuQNjNyQVCnqRk8Gvo1LWx5zhbU1/FOgLa+HoJ5IZUmtZ8rPsKiSJznbn+JlzkkYA9ycCtYOySxGI+Thh820fLzjJ46129j5mpeGr63uwZ4p444QsSb3VycK+3I6DOTmvLZZbzTbmfTLmTM1tK0TliCTg+xx0rmrwcjsw01G67nrcUa63ouA0V00MZQyecP3e8YDbiDt9Kq6r5Nl4caznkEMkejvOkjXA8wXKq6qN24MSBt4xiofAmrRz6bOsKq9wikTRxuELpt4JHflRj8TVzxHHaXi291NpN/dPZwTeWsAQsjsh5dc7to6gLkH17Vy0qjjLlZ24mnBrmiZ/h4vJoFrBJcRedBYysXWQq5ldsIgxw2FIBHuR2r0S01TTY7b+znEqS21pHlyv7uTcmflbOTySOh5FeIeGddFhp8VvJHI8pYmOOIEyucAbQvboeSeM13+pDX9Qt9O1m5WGytAqQJCoYzwE4IDAcNuwTnjoPXFaTnKLbaRzwjGSjFNm/rauEsrx9sDxRyRoqHO4lhyORgBcn0+UetYer65Bb2c18ssBjljPk2+6MGAfKS3U5LAkAL02jHqU8Z3Ot2mh266w9o8ojmMM1spTflAuGU8hhuJriNK0ea78P3tzJeM8a2MixRSyklWA3RkA8cgcD606Lc4uLLxUFGnCUVvd/jYo+IvEFxqA2RyFFPYGsRrVngySScVFplq8p3yNnHI5rQu7qO2hKkisf4b5IbmEV7vNI5OdGim+UnINepfCme4vpfKlb5VOMmvLri4WSYkdCa6jwVr8uiXYk8ovEeoHaurEwcqW12c9GSU/I//9k="};
+const NAME2AV={"嘉靖帝":"jiajing","海瑞":"hairui","严嵩":"yansong","严世蕃":"yanshifan","吕芳":"lufang","徐阶":"xujie","汪直卿":"wangzhiqing","沈一石":"shenyishi","裕王":"yuwang","陈洪":"chenhong","黄锦":"huangjin","张居正":"zhangjuzheng","王用汲":"wangyongji","鄢懋卿":"yanmaoqing","李春芳":"lichunfang"};
+
+/* ================= 剧情数据 =================
+   关卡: { t, hint, res, win, lose, actors:[[名,职,色,字]], nodes:[...] }
+   台词节点: { n:[[谁,台词]] }  谁=-1旁白, 0..=actors下标
+   抉择节点: { c:{ p:问句, o:[{ t:选项, h:小字, fx:{资源增减}, r:[[谁,台词]] }] } }
+   走完全部节点后按 win/lose 判定结局
+/* ============================================ */
+const CAM = {
+jiajing:{ name:"皇帝 · 嘉靖", c:"#e6b422", av:"玄",
+  desc:"二十五年不上朝，朝堂照样转。改稻为桑的朱批出自你手——天下是朕的天下，也是朕的丹炉。",
+  levels:[
+  { t:"岁在改元", hint:"户部亏空，严党献策。<b>改稻为桑</b>——是富国良方，还是殃民之始？你的每一道朱批，都会落到浙江的田里。",
+    res:{ qian:42, min:45, quan:60, wei:20 },
+    actors:[["嘉靖帝","皇帝","#e6b422","玄"],["严嵩","内阁首辅","#c05040","严"],["吕芳","司礼监","#b07ae0","吕"]],
+    nodes:[
+      { n:[[-1,"嘉靖三十九年，西苑精舍，青词的烟直直地升上去。你二十五年不上朝，天下却仍在你的指尖上。"],
+          [1,"皇上，户部岁用不敷，亏空二十万两。老臣有一策，富国而不加赋——只是，有风险。"]] },
+      { c:{ p:"严嵩说的「富国而不加赋」，你如何接？", o:[
+        { t:"「说。」——让他把改稻为桑献上来", h:"国库有指望了，但浙江的田要变", fx:{qian:12,min:-6,wei:5},
+          r:[[1,"浙江、南直隶，改稻为桑。三年之后，丝绸行销西洋，税银岁入百万……"],
+             [-1,"你提笔，朱批「依拟」二字。你不知道，纸上一行字，日后是一个省的劫。"]] },
+        { t:"「先问一句——浙江的稻，够吃吗？」", h:"首辅会记着你问过这句话", fx:{min:5,quan:-3},
+          r:[[1,"……民力，老臣确实未曾细算。容老臣回去与户部核了再奏。"],
+             [-1,"严嵩敛袖退下。你看见他在殿外皱了皱眉——很久没有人打断他了。"]] },
+        { t:"垂目不语，继续诵经", h:"不表态，也是一种表态", fx:{quan:-5,wei:-3,qian:-4},
+          r:[[2,"皇上，香快尽了。"],
+             [-1,"你始终没看严嵩。他站了一炷香的功夫，自己退下去了。"]] } ] } },
+      { n:[[2,"皇上，浙江巡抚郑泌昌的密折到了。上说：改桑令下，大户贱买民田，小民被迫相随，淳安、建德已有流民。"],
+          [0,"……你怎么看？"]] },
+      { c:{ p:"这封密折，朱笔怎么落？", o:[
+        { t:"申饬郑泌昌：「阻挠国策，着即自省」", h:"严党会弹冠相庆", fx:{wei:8,min:-5,quan:5,qian:4},
+          r:[[1,"郑泌昌治行无状，奏对失实。皇上圣明。"],
+             [-1,"严词到了浙江。改桑，更急了。"]] },
+        { t:"手谕严阁老：「国策当行，然须防兼并」", h:"严党会阳奉阴违", fx:{wei:-6,quan:-4},
+          r:[[2,"奴才把皇上的手谕，封了送到阁老府上。"],
+             [-1,"三日后，严嵩的长疏到了。辞极恭顺，意极坚。"]] },
+        { t:"遣科道官密查浙江田土", h:"花银子，买真话", fx:{wei:-3,qian:-4},
+          r:[[0,"查？皇上想叫谁去查？"],
+             [-1,"你想了想，在小纸片上写下一个名字，又划掉，另写了一个。"]] } ] } },
+      { n:[[-1,"冬深。浙江的消息像雪片一样落进西苑，每一片都是凉的：堤坏了，淹殁数千，流民北上。"],
+          [1,"皇上，浙江堤溃是天灾，非改桑之过。老臣已行文赈济，不劳内帑。"]] },
+      { c:{ p:"堤溃民流，阁老说是天灾。你说呢？", o:[
+        { t:"发内帑银十万，赈浙江", h:"那是你修殿的钱", fx:{qian:-6,min:10,wei:-5},
+          r:[[2,"皇上，那是……修殿的银子。"],
+             [0,"修殿可以慢。人死了，就慢不回来了。"],
+             [-1,"银子出了内帑。你殿里的香火，减了一半。"]] },
+        { t:"「堤是谁修的，就问谁的罪。」——严旨压下去", h:"官场上会人人自危", fx:{wei:10,min:-4,quan:6},
+          r:[[1,"皇上圣明。浙江官场，是该肃一肃了。"],
+             [-1,"浙江的官在发抖。律是严了，人心却散了。"]] },
+        { t:"着严阁老与徐阁老会同勘灾", h:"让两只虎互相盯着", fx:{wei:-8,quan:-8,min:4},
+          r:[[2,"奴才遵旨，严、徐两处都知会。"],
+             [-1,"严党清流同船勘灾，朝野侧目。你清楚——你只是要他们互相盯着。"]] } ] } },
+      { n:[[-1,"除夕，西苑的爆竹声稀。吕芳捧来一盏热汤。"],
+          [2,"皇上，外头冷，这汤……您趁热。"],
+          [-1,"窗外雪落无声。浙江的田、户部的账、严嵩的笑、流民的锅——都在这一盏汤的热气里，慢慢浮上来。"]] }
+    ],
+    win:[["qian",">=",44],["min",">=",38],["wei","<=",60]],
+    lose:[["min","<=",20],["wei",">=",85]],
+    wt:"改元诏书颁下，改稻为桑行省如故。你赌的是三年后的税银——史书会告诉你，浙江赌上的是一代人。",
+    lt:"浙江的春汛年年来，流民年年来。你终于知道：改稻为桑四个字，写在奏折上是钱，落在田里是命。" },
+
+  { t:"丝绸与刀", hint:"浙江织局，沈一石的丝绸，改桑之后的第一笔大生意。<b>织局的银子流向谁，你比谁都清楚</b>——但你要的是它继续流。",
+    res:{ qian:52, min:40, quan:58, wei:30 },
+    actors:[["嘉靖帝","皇帝","#e6b422","玄"],["严世蕃","工部侍郎","#c05040","蕃"],["吕芳","司礼监","#b07ae0","吕"]],
+    nodes:[
+      { n:[[-1,"开春。浙江织局的丝绸装船，西洋船队出价极高——这是改桑之后第一笔大生意。"],
+          [1,"皇上，沈一石这批绸，官卖织造，一匹可赚三钱银。只是……"]] },
+      { c:{ p:"「只是」后面，通常跟着麻烦。你等他说完。", o:[
+        { t:"「讲。」", h:"听完再决定", fx:{quan:-2},
+          r:[[1,"只是沈一石的账，三本。官账、私账、还有……给上头各位爷的账。"],
+             [0,"朕知道。朕只是要绸子变成银子。"]] },
+        { t:"「朕不想听过程，朕要结果。」", h:"效率，但瞎", fx:{qian:8,wei:6},
+          r:[[1,"臣明白了。只要银子，别的，臣去料理。"],
+             [-1,"严世蕃笑着退下。他的笑里，有恃无恐。"]] } ] } },
+      { n:[[-1,"半月后，浙江急报：织局催派桑价，淳安知县海瑞拒不在公文上画押，放百姓告了御状。"],
+          [2,"皇上，淳安有个知县，叫海瑞。他……把告状的百姓，送到杭州府去了。"]] },
+      { c:{ p:"一个七品知县，告到御前。你的第一反应是——", o:[
+        { t:"「狂生。」——发回浙江，交严党「料理」", h:"严党会料理得很干净", fx:{wei:10,min:-6,quan:4},
+          r:[[1,"海瑞此獠，沽名钓誉。老臣回浙江，自会教训。"],
+             [-1,"你把御状留中不发。你以为这件事就这样过去了。"]] },
+        { t:"把御状留下：「朕亲自看。」", h:"你会看到很多不想看的", fx:{quan:-4,wei:-4,min:4},
+          r:[[0,"御状留下。谁递的，从实奏来。"],
+             [-1,"御状在你案头放了七日。你终究没有批——但你读了三遍。"]] },
+        { t:"调海瑞进京引见", h:"棋子要放在看得见的地方", fx:{quan:5,wei:5},
+          r:[[2,"皇上要见海瑞？奴才这就去拟旨……"],
+             [-1,"严世蕃闻讯，把茶盏顿在桌上：一个知县，也配进京？"]] } ] } },
+      { n:[[-1,"夏。西洋船期将至，绸子却卡在杭州——沈一石忽然「暴病」，织局无绸可装。"],
+          [1,"皇上，沈一石病了，织局的绸……怕是要误船期。"]] },
+      { c:{ p:"误了船期，就是误了税银。怎么办？", o:[
+        { t:"「病？叫太医去『看看』。」——逼他交货", h:"沈一石会懂你的意思", fx:{qian:10,wei:6},
+          r:[[2,"奴才遵旨，请太医……去沈家出诊。"],
+             [-1,"三日后，沈一石的绸子装船了。他本人，也「病愈」了。"]] },
+        { t:"叫市舶司另寻供货商", h:"远水不解近渴", fx:{qian:-6,min:3,wei:-3},
+          r:[[0,"沈家的绸，天下不是只有他家有。"],
+             [-1,"新供货商谈了三个月，只谈成一半的数目。严世蕃在笑——笑你离了他严家，连绸子都买不到。"]] } ] } },
+      { n:[[-1,"秋。绸银入库，户部的亏空补上了一角。浙江的田里，稻子却比去年又少了十万亩。"],
+          [0,"吕芳，你说——沈一石富可敌国。他的国，是谁的国？"],
+          [2,"奴才……不敢说。"],
+          [0,"朕替你说：朕的。朕的银子，朕的人，朕的天下。都是朕的。"]] }
+    ],
+    win:[["qian",">=",58],["min",">=",35],["wei","<=",50]],
+    lose:[["qian","<=",15],["wei",">=",85]],
+    wt:"绸船出海，白银入窖。你看着账本点头——满朝文武都是朕的棋子，沈一石是，严世蕃是，海瑞也是。",
+    lt:"船期误了，账空了，浙江的火却越烧越旺。你第一次觉得：这盘棋，有几个子，不听使唤了。" },
+
+  { t:"永寿宫的火", hint:"一场大火，烧了永寿宫。<b>修殿的银子、严徐的相斗、上天的心意</b>——都在灰烬里等着你去解。",
+    res:{ xuan:45, qian:45, min:38, wei:30 },
+    actors:[["嘉靖帝","皇帝","#e6b422","玄"],["严嵩","内阁首辅","#c05040","严"],["徐阶","内阁次辅","#4ecb71","徐"],["吕芳","司礼监","#b07ae0","吕"]],
+    nodes:[
+      { n:[[-1,"夜半，永寿宫火起。你披着道袍站在月下，看火光映红半边天。"],
+          [3,"皇上！皇上您离远些——火、火烧过来了！"],
+          [0,"（你望着大火，久久不语。）……天意。"]] },
+      { c:{ p:"天意？你心里清楚这不是天意。但朝堂会替你解释天意。", o:[
+        { t:"「修省。」——下罪己诏", h:"皇帝的罪己，是政治", fx:{min:8,wei:3,xuan:5},
+          r:[[1,"皇上圣德。老臣以为，罪己诏当以「改桑扰民」为辞……"],
+             [-1,"罪己诏颁下，天下称圣。只有你知道，你是在给天下一个交代，给自己一个台阶。"]] },
+        { t:"「重建永寿宫。」——火后必建，以安人心", h:"银子从哪来？", fx:{qian:-12,xuan:8,wei:5},
+          r:[[0,"烧了，就再修。朕的殿，朕做主。"],
+             [-1,"工部的勘估文书连夜到了。户部的尚书，在府里吐了血。"]] },
+        { t:"召严嵩、徐阶连夜入值", h:"火场问政", fx:{min:3,wei:-4},
+          r:[[-1,"两位阁老在火场外候到天亮。你谁也没见——你只是要他们站着。"]] } ] } },
+      { n:[[-1,"重建的奏议堆满案头。严党举荐工部侍郎赵文贞督办，清流弹劾赵文贞贪墨。两份奏本，同日到。"],
+          [1,"皇上，重建非文贞不可。工部诸司，唯文贞敢任其难。"],
+          [2,"皇上，赵文贞浙江采买，侵吞木价十万。此人断不可用。"]] },
+      { c:{ p:"严嵩保的人，徐阶咬。你用谁？", o:[
+        { t:"用赵文贞——严党的手，快", h:"快，但脏", fx:{qian:-8,wei:8,min:-3},
+          r:[[1,"老臣代文贞，谢皇上天恩。"],
+             [2,"（徐阶叩首，额头见血。）臣……遵旨。"]] },
+        { t:"用清流举荐的人——慢，但干净", h:"严党会给你使绊子", fx:{qian:-4,wei:-5,min:3},
+          r:[[2,"皇上圣明。臣另举南京工部一位主事，办事极实。"],
+             [1,"（严嵩眼皮都没抬。）徐阁老的人，慢得很呐。"]] },
+        { t:"「殿不修了。」——停建，两不相帮", h:"你的道场自己掏钱", fx:{xuan:-8,qian:8,wei:-6},
+          r:[[3,"皇上，永寿宫……不修了？"],
+             [0,"朕住精舍惯了。烧了干净。"]] } ] } },
+      { n:[[-1,"入冬，青词考核。严党的青词工整，清流的青词典雅。你知道这不是考青词——这是考谁在替你写心。"],
+          [3,"皇上，两份青词都在这儿了。您……用哪份？"]] },
+      { c:{ p:"青词之上，见君心。", o:[
+        { t:"用严党的——改桑还得靠他们", fx:{wei:4,xuan:-2},
+          r:[[-1,"严嵩得知，当晚在府中设了一桌素宴，只敬天地。"]] },
+        { t:"用清流的——该给严党一点颜色了", fx:{wei:-3,xuan:2},
+          r:[[-1,"徐阶把那份青词锁进箱底，谁也不给看。"]] },
+        { t:"都不用。「朕自己写。」", h:"帝王的心，不假手于人", fx:{xuan:10,wei:3},
+          r:[[0,"朕的青词，朕自己写。朕的心，朕自己写。"],
+             [-1,"那夜你写到三更。青词是给上天看的——可你写的，句句是人间。"]] } ] } },
+      { n:[[-1,"永寿宫的废墟上，草长出来了。你站在旧基上，吕芳在身后低声说——"],
+          [3,"皇上，火场里的东西，奴才都扒出来了。有半块金锭，成色……是内官监的。"],
+          [-1,"你没有回头。风从废墟上吹过，像一声很轻的叹息。"]] }
+    ],
+    win:[["xuan",">=",50],["wei","<=",60],["qian",">=",30]],
+    lose:[["qian","<=",10],["wei",">=",85]],
+    wt:"新殿没修成，你的道心却定了。严嵩、徐阶、吕芳——火场里照出的每张脸，你都记住了。",
+    lt:"殿是修不成了。银子烧了，人心烧了，连上天的心意也烧糊了。你望着废墟，第一次觉得冷。" },
+
+  { t:"治安疏", hint:"户部主事海瑞上了一道疏，骂你「家家皆净」。<b>满朝等你杀他</b>——或者，杀一儆百。",
+    res:{ wen:50, wei:35, sheng:55 },
+    actors:[["嘉靖帝","皇帝","#e6b422","玄"],["海瑞","户部主事","#4ecb71","海"],["吕芳","司礼监","#b07ae0","吕"]],
+    nodes:[
+      { n:[[-1,"嘉靖四十五年冬。那道奏疏就压在你的丹炉边，你已经看了四遍。"],
+          [2,"皇上……户部主事海瑞，上了一道《治安疏》。上面……上面……"],
+          [0,"念。"],
+          [2,"「天下人不直陛下久矣。」……「嘉靖者，言家家皆净而无财用也。」"],
+          [-1,"精舍里静得能听见丹炉的火苗声。你把奏疏拿起来，又放下。"]] },
+      { c:{ p:"骂你「家家皆净」的人，现在在午门外候着。", o:[
+        { t:"「拿下！」——下诏狱，拷问主使", h:"你会知道是谁写的，也会知道不是谁写的", fx:{wei:12,wen:6,sheng:-4},
+          r:[[-1,"海瑞被拖下去时没有喊冤。他回头看了一眼精舍的方向，像在看一道没解完的题。"]] },
+        { t:"「留中。」——朕不看，朕看不见，它就不存在", h:"自欺，但安全", fx:{wei:-4,wen:3},
+          r:[[2,"奴才把它……压在最底下。"],
+             [-1,"奏疏压下去了。可那几个字，像烙铁一样烙在你眼里。"]] },
+        { t:"「传海瑞。」——朕要亲自问问他", h:"帝王与孤臣，隔着一张案", fx:{wei:6,sheng:5},
+          r:[[1,"陛下。臣要说的，都在疏里了。疏外无话。"],
+             [0,"你骂朕家家皆净。朕倒要问——天下穷，是朕穷的，还是你们当臣的穷的？"],
+             [1,"臣在疏里已经答过了。陛下没看。"]] } ] } },
+      { n:[[-1,"你命人把海瑞的奏疏抄了十份，分给内阁、六科、都察院。三天之后，满朝都会背了。"],
+          [2,"皇上，百官的救本，堆不下了。"],
+          [0,"堆着。朕要他们看看，骂朕的，是一个七品主事。他们呢？"]] },
+      { c:{ p:"夜半，丹炉的火快熄了。这道疏，最终怎么收场？", o:[
+        { t:"「别让他死。」——关着，朕要他活着看", h:"活着，比死难", fx:{wei:-6,wen:5,sheng:3},
+          r:[[2,"皇上，奴才明白了。诏狱里，给海瑞留间干净的房。"],
+             [-1,"你不杀他。你要他活着，看这天下到底是谁负了谁。"]] },
+        { t:"弃市。——以正国是", h:"史书会替你算这笔账", fx:{wei:15,wen:10,sheng:-10},
+          r:[[-1,"菜市口那日，观者如堵。海瑞死得很安静。"],
+             [-1,"你杀了一个海瑞。第二年，骂声没了——真话，也没了。"]] },
+        { t:"焚疏，释海瑞——「朕不与他计较」", h:"像皇帝，也像逃兵", fx:{wei:-10,wen:-8,sheng:6},
+          r:[[0,"烧了。当它没有来过。"],
+             [-1,"疏烧了，海瑞放了。可你自己知道——烧得掉纸，烧不掉那几个字。"]] } ] } },
+      { n:[[-1,"嘉靖四十五年冬十二月。你躺在你心里那座修了一辈子也没修成的殿里。"],
+          [2,"皇上，裕王在殿外候着了。"],
+          [0,"（你望着丹炉，很久。）……叫海瑞的那道疏，再给朕念一遍。"]] }
+    ],
+    win:[["wen",">=",58],["wei","<=",70],["sheng",">=",45]],
+    lose:[["wei",">=",90],["wen","<=",25]],
+    wt:"你关住了那个人，关不住那些话。你守住了江山到最后——是智是愚，史书各有一半。",
+    lt:"你杀了海瑞，天下再无人骂你——也再无人，跟你说真话。" }
+]},
+
+hairui:{ name:"孤臣 · 海瑞", c:"#4ecb71", av:"海",
+  desc:"无党无援，只有一把骨头。从淳安知县做起——上头的公文和百姓的活路，摆在你一张案上。",
+  levels:[
+  { t:"淳安改桑", hint:"改稻为桑的公文到了淳安，大户趁贱买田。<b>你是海瑞</b>——县库空虚，顶头上司是严党的人，身后是淳安的稻农。",
+    res:{ min:45, ku:50, wei:30, xin:50 },
+    actors:[["海瑞","淳安知县","#4ecb71","海"],["汪直卿","浙江按察使","#e0a040","汪"],["严世蕃","工部侍郎","#c05040","蕃"]],
+    nodes:[
+      { n:[[-1,"嘉靖四十年，春。淳安城外，农人牵着牛、抱着田契，排着队往大户的门里走。改稻为桑的公文，就压在你的案头。"],
+          [-1,"幕僚低声说：大人，严阁老的公文，催办如催命。"]] },
+      { c:{ p:"公文催办改桑。你的朱笔，怎么落？", o:[
+        { t:"张榜：「海某在此一日，淳安稻田一亩不动。」", h:"严党会记恨你", fx:{min:12,wei:10,ku:-4},
+          r:[[-1,"榜文贴出去，淳安的茶棚里都在传。大户们的脸色，很难看。"],
+             [2,"（杭州，严世蕃把公文摔在案上。）一个七品，也敢挡老爷我的财路？"]] },
+        { t:"准改，但定田价下限：低于此价，不许卖", h:"两头受气，两头不落地", fx:{min:5,wei:3,ku:4},
+          r:[[-1,"大户骂你是呆官，百姓不骂你。你的考语，也好不到哪里去。"]] },
+        { t:"先清丈大户隐田——改桑的事，丈完再说", h:"豪强的恨，从今日开始", fx:{ku:10,min:4,wei:6},
+          r:[[-1,"清丈的差役进了村。隐田一亩一亩浮出来，状纸也一张一张递到了杭州。"]] } ] } },
+      { n:[[-1,"夜。浙江按察使汪直卿轻车简从，进了县衙后堂。他不是你这一边的人——可他也不是严党的心腹。"],
+          [1,"海大人，下官只说一句。改桑是阁老的意思，巡抚台的意思，织局的意思。你一个人，顶得住几层意思？"],
+          [0,"……"]] },
+      { c:{ p:"汪直卿深夜来访，是善意，也是试探。你怎么答？", o:[
+        { t:"「顶不住，也要顶。淳安顶不住，还有建德。」", h:"实话最得罪人，也最动人", fx:{wei:5,xin:6},
+          r:[[1,"（汪直卿盯着你看了很久。）……下官今夜没来过。"]] },
+        { t:"「请大人指条明路。」", h:"欠人情，人情最贵", fx:{wei:-6,ku:6,min:-3},
+          r:[[1,"折个价，把桑苗钱从织局走账。别说是下官教的。"],
+             [-1,"你照办了。织局的账上，多了一笔糊涂账；淳安的库里，少了一笔糊涂钱。"]] },
+        { t:"「大人深夜到此，下官该记在哪本簿子上？」", h:"软钉子", fx:{wei:3,xin:-2},
+          r:[[1,"（汪直卿苦笑。）好，好一个海刚峰。下官告辞。"]] } ] } },
+      { n:[[-1,"入夏，杭州行文：着淳安采买桑苗三万株，价银三千两——桑苗出自沈一石名下，价高十倍。"],
+          [1,"（汪直卿另纸密告。）苗价的事，是个局。不买，你的考语就是「阻挠国策」。"]] },
+      { c:{ p:"三千两买三十万钱的苗。买，还是不买？", o:[
+        { t:"不买。具文直斥苗价之弊", h:"公文会送到严党案头", fx:{wei:8,min:6,ku:-2},
+          r:[[-1,"具文发出去那天，你把县库的账目重新核了一遍——经不起核，也经不起查了。"]] },
+        { t:"买。按市价买，差价叫沈家账房自己填", h:"阳谋对阳谋", fx:{ku:-10,min:8,wei:-4},
+          r:[[-1,"你挑了别家的苗，只给沈家一半的价。杭州没有动静——有些账，是记在心里的。"]] },
+        { t:"具本直告浙江巡抚衙门", h:"越级告状，官场的死罪", fx:{wei:8,ku:2,min:4},
+          r:[[2,"（郑泌昌把呈文丢进火盆。）海瑞？叫他知道知道，淳安的天，是谁的。"]] } ] } },
+      { n:[[-1,"冬。淳安的稻田到底没动几亩。县库见了底，你的官声却从淳安传到了杭州。"],
+          [1,"（汪直卿临行前留了一句话。）海大人，保好你自己。下官们，保不了你。"],
+          [-1,"你在县衙里煮了一锅粥。粥很稀，映出你脸上的笑——那是这一年的第一个笑。"]] }
+    ],
+    win:[["min",">=",60],["ku",">=",35],["wei","<=",55]],
+    lose:[["min","<=",20],["wei",">=",90]],
+    wt:"淳安的稻田保住了。「海淳安」三个字，开始在浙江的市井里传。你的考语是「肆奸植党」——你把它挂在了墙上。",
+    lt:"淳安田荒民散，你以「阻挠国策」被劾去官。印信交出去那天，城外跪了黑压压一片人。" },
+
+  { t:"赈粮案", hint:"江浙大祲，赈银在途，州县折价克扣。上宪催你「以大局为重」——<b>大局里，没有灾民</b>。",
+    res:{ min:45, ku:30, wei:35, xin:55 },
+    actors:[["海瑞","淳安知县","#4ecb71","海"],["灾民首领","流民","#9aa5a0","民"],["粮商","杭州米商","#e0a040","商"]],
+    nodes:[
+      { n:[[-1,"嘉靖四十一年，大祲。朝廷赈银二十万两过嘉兴，州县折价，到手只剩八成——八成的八成，才到淳安。"],
+          [-1,"户房书吏捧着算盘：大人，上宪的规矩，火耗、折色、脚力……层层扒下来，一两剩四钱。"]] },
+      { c:{ p:"赈银入境。这道手令，你签不签？", o:[
+        { t:"拒折价：「一文不少，当堂发放，灾民自领」", h:"你把整条利益链都得罪了", fx:{min:10,xin:8,wei:12},
+          r:[[1,"（灾民排着三里长的队，每人手里攥着足额的一串钱，哭。）"],
+             [-1,"杭州的行文当天就到了：淳安「违制赈济，殊属不合」。"]] },
+        { t:"依折价发放，县库贴补差额", h:"县库本来就没剩什么", fx:{min:6,ku:-12,wei:2},
+          r:[[-1,"你把自己的俸银也投了进去。账做平了，灾民没饿死——你的库，空了。"]] },
+        { t:"具文弹劾沿途克扣", h:"告状告到全浙江", fx:{wei:15,xin:5},
+          r:[[-1,"弹文发出去，赈银照旧折价。你的名字，从杭州到杭州，挂在了每张公文的批红旁边——挂着当靶子。"]] } ] } },
+      { n:[[-1,"入冬，米价一日三涨。杭州的粮船泊在淳安境外，不进来。"],
+          [2,"（粮商摇着扇子。）海大人，米是商人自己的货。价高，才有得卖嘛。"]] },
+      { c:{ p:"米价翻倍，灾民的锅是空的。怎么办？", o:[
+        { t:"开仓平粜，县粮平价出售后回补", h:"库里的存粮，是救命底", fx:{ku:-10,min:10,xin:6},
+          r:[[-1,"平粜的米价，就是淳安的人心。粮商在境外磨牙，进不来。"]] },
+        { t:"拘拿囤积粮商，限价平粜", h:"严刑能压价，也能生乱", fx:{min:8,xin:4,wei:8},
+          r:[[2,"（粮商连夜递状到杭州。）海瑞抢商！淳安还有王法吗！"]] },
+        { t:"不干预——粮价自会回落", h:"灾民等不到「自会」", fx:{min:-10,xin:-8},
+          r:[[-1,"你站在城头，看境外粮船的灯火，一夜没说话。"]] } ] } },
+      { n:[[-1,"腊月，流民聚了上千人，围了县衙。不是抢——是跪着。"],
+          [1,"大人！西乡已经断炊三日了！官府不开仓，我们……我们就死在这儿！"]] },
+      { c:{ p:"开仓要罪，不开仓要命。你面前的案上，是县仓的钥匙。", o:[
+        { t:"开仓。——「罪在我一人。」", h:"擅开官仓，是死罪", fx:{min:15,wei:15,xin:10},
+          r:[[-1,"仓门开了。你回到后堂，把官印捧出来，用红布包好，摆在案上——然后继续写赈济的名册。"]] },
+        { t:"设粥厂，稀粥续命，等上宪明发赈令", h:"粥很稀，但能拖", fx:{min:5,wei:2,ku:-6},
+          r:[[-1,"粥厂排了十里。粥稀得照见人影——可没人饿死在县衙门口。"]] },
+        { t:"闭门——「仓无明令不开，这是法。」", h:"法没错，错的是年成", fx:{min:-15,wei:-8,xin:-12},
+          r:[[-1,"那一夜，县衙外的哭声没有停。你在灯下坐到天亮，一夜白了几根头发。"]] } ] } },
+      { n:[[-1,"开春，汪直卿再过淳安。他瘦了，你也瘦了。"],
+          [1,"海大人，弹你的本章，七本。保你的民状，一百三十张。上头问下官：这个海瑞，是官，还是民？"],
+          [0,"下官不知道。下官只知道淳安今年没绝户。"]] }
+    ],
+    win:[["min",">=",65],["xin",">=",60],["wei","<=",70]],
+    lose:[["min","<=",25],["wei",">=",95]],
+    wt:"大祲之年，淳安没有绝户。赈粮案的七本弹章没告倒你——一百三十张民状，把你抬过了这一关。",
+    lt:"淳安饿殍，你被锁拿下狱。狱车出城那天，百姓沿河跪了一里——没有人敢哭出声。" },
+
+  { t:"催科之争", hint:"织局岁办亏空，上峰把亏空摊派到淳安。加派，百姓反；不加，你的顶戴——<b>还有你的命</b>。",
+    res:{ ku:25, min:50, wei:40, xin:60 },
+    actors:[["海瑞","淳安知县","#4ecb71","海"],["里正","淳安里正","#9aa5a0","里"],["上官","杭州通判","#c05040","判"]],
+    nodes:[
+      { n:[[-1,"嘉靖四十二年，织局岁办亏空六万匹，部议摊派各府县。杭州通判带着文书到淳安：摊派三千匹，秋前缴齐。"],
+          [2,"海大人，这不是本官为难你。摊派是部议，部议是阁拟。你缴，还是不缴？"]] },
+      { c:{ p:"三千匹，摊到淳安头上，就是把稻农往绝路上逼。", o:[
+        { t:"「淳安无桑，无丝，无织。无派。」——当面拒", h:"通判的脸，当场就变了", fx:{wei:12,min:8,xin:5},
+          r:[[2,"好。好得很。本官的记录上，会写你这句话。"]] },
+        { t:"应下摊派，秋后加派于民", h:"你的顶戴稳了，淳安的天塌了", fx:{ku:15,min:-15,wei:-5,xin:-10},
+          r:[[1,"（里正磕头。）大人，淳安真的……榨不出来了。"]] },
+        { t:"应下，但只派于大户丝行", h:"大户的状纸，比稻农的快", fx:{ku:8,min:2,wei:8},
+          r:[[-1,"丝行掌柜连夜写了三张呈子，分别递往杭州、南京、北京。"]] } ] } },
+      { n:[[-1,"夜。有人叩后衙的角门。一只封了红绸的箱子抬进来——一千两，淳安大户凑的。"],
+          [1,"（里正低声。）大人，大伙儿的意思：这钱，您收下，摊派的事，请您高抬贵手。您要是不收……大伙儿就只好去告您「催科无状」了。"]] },
+      { c:{ p:"一千两。箱子就摆在灯下。", o:[
+        { t:"拒收，当堂拆封，银两当众发还", h:"大户们会记你一辈子", fx:{wei:8,xin:10,min:5},
+          r:[[-1,"银子一锭一锭抬出去。围观的百姓看见，海大人的手，一直在抖——不是心疼，是气的。"]] },
+        { t:"收下，全额抵作下年苗银", h:"银子没错，错的是给银子的人", fx:{ku:15,xin:-5,wei:-3},
+          r:[[-1,"你把收条贴在了谯楼——「淳安海瑞，借大户银一千两，抵苗银」。字是好字，债是烂债。"]] },
+        { t:"收下，封库，具报待查", h:"钱在库里，把柄在手里", fx:{ku:10,wei:6,xin:2},
+          r:[[-1,"箱子入库，铅封。你写给杭州的公文里，一字未提收礼——只提「大户代纳」。"]] } ] } },
+      { n:[[-1,"秋末，京察的考察专使到了杭州。淳安的考语，捏在通判手里——「最」与「污」，只在一笔之间。"],
+          [2,"海大人，抚台的口气松了。只要你具本认错，摊派的事，可以改派。"]] },
+      { c:{ p:"一纸「认错本」，换你一个「卓异」。", o:[
+        { t:"不认。——「本官无过，何错之认。」", h:"你的官途，到此为止", fx:{wei:5,xin:8},
+          r:[[-1,"专使走后，你把官印擦了三遍。擦得很亮——像擦一面镜子。"]] },
+        { t:"具本自劾「催科无状」，字认，理不认", h:"认个态度，保住淳安", fx:{wei:-6,min:-3,xin:3},
+          r:[[-1,"自劾本里，你一条罪也没认，只写了一句话：「淳安之困，困于摊派，非困于催科。」"]] },
+        { t:"八百里加急，直呈南京都察院", h:"越了三级的府，也越了三级的命", fx:{wei:12,xin:10},
+          r:[[-1,"加急的文书出城时，通判在城门口截了三次——没截住。"]] } ] } },
+      { n:[[-1,"冬。考语下来了：「淳安知县海瑞，肆奸植党，疾之如仇。」——「最」是没有了，「污」也没有。"],
+          [1,"（里正捧着抄件，手抖。）大人，这八个字，是罪，还是功？"],
+          [0,"史书会替我认这笔账。"]] }
+    ],
+    win:[["min",">=",55],["xin",">=",65],["ku",">=",20]],
+    lose:[["wei",">=",90],["min","<=",25]],
+    wt:"摊派没有落到稻农头上。考语是「肆奸植党」——淳安的百姓说，这四个字，是海大人的功德碑。",
+    lt:"加派的鞭子落在淳安身上，百姓逃了三分之一。你在空了的里甲册上，画了一个押。" },
+
+  { t:"治安疏", hint:"你调任户部云南司主事。棺材备好了，妻子遣散了。<b>这一疏上去，要么青史，要么刀口</b>。",
+    res:{ wei:35, yao:55, xin:60 },
+    actors:[["海瑞","户部主事","#4ecb71","海"],["友人","同僚","#9aa5a0","友"],["王用汲","南京户部","#e0a040","王"]],
+    nodes:[
+      { n:[[-1,"嘉靖四十五年，冬。你的寓所里停着一口薄棺。你遣散了僮仆，把后事交代了两遍。"],
+          [-1,"案上，是写了一个月的奏疏。疏稿的每一个字，你都咬过——像咬自己的骨头。"],
+          [1,"（友人破门而入。）刚峰！你疯了！那是诏狱！是凌迟！"]] },
+      { c:{ p:"疏稿在手，棺木在堂。上，还是不上？", o:[
+        { t:"上疏。——「备位承平，愧无敢死之气，是臣之罪。」", h:"从此刻起，你是海刚峰", fx:{wei:20,yao:15,xin:5},
+          r:[[2,"（王用汲替你买好了棺材。）我替你送终。你替天下说话。"],
+             [-1,"疏出齐化门。满城的人都在传抄，纸贵了三倍。"]] },
+        { t:"疏稿投进火盆——「留这条命，再做实事」", h:"留命容易，留骨气难", fx:{wei:-10,yao:-15},
+          r:[[-1,"火苗舔上疏稿的时候，你伸手进去，把它抢了出来。"],
+             [-1,"你坐在地上，拿着烧焦的纸角，坐了一夜。天亮时，你重新铺开了一张纸。"]] } ] } },
+      { n:[[-1,"疏入。西苑没有回音。一天，两天，七天。"],
+          [-1,"第八天，缇骑到了。你穿着官服，在午门外自己上了枷。围观的人越聚越多，没有人说话。"]] },
+      { c:{ p:"丹陛之上，皇帝亲审。他问你：你凭什么骂朕？", o:[
+        { t:"据实直对：「陛下修玄二十五年，天下赋重，民不聊生。」", h:"一字不让", fx:{wei:8,yao:10},
+          r:[[0,"臣疏中所言，一字一句，皆有实据。陛下可召天下督抚问之。"],
+             [-1,"据说，御座上的呼吸声，隔了三丈都听得见。"]] },
+        { t:"叩首：「臣罪该万死，然言为天下发。」", h:"软话硬骨", fx:{wei:-5,yao:5},
+          r:[[0,"臣死罪。但疏里的话，不是臣的话，是天下百姓的话。"]] },
+        { t:"闭口不言", h:"沉默也是一种供词", fx:{wei:5,yao:-3},
+          r:[[-1,"你闭着眼。问十句，答一句：「臣在疏中已尽言。」"]] } ] } },
+      { n:[[-1,"诏狱。你的牢房反而干净——狱卒敬你。外面，救你的本子和害你的本子，一样多。"],
+          [2,"（王用汲探监，隔着栅栏。）刚峰，上头递过话来：具本谢罪，可减等。"]] },
+      { c:{ p:"一纸谢罪本，出去；不谢，等刀。", o:[
+        { t:"不谢罪。——「臣无罪可谢。」", h:"等刀，或者等改元", fx:{yao:12,wei:3},
+          r:[[-1,"王用汲对着你作了个深揖，转身走了。他在狱外，替你养那口棺材。"]] },
+        { t:"具本谢罪，保全有用之身", h:"活着出去，还是死出去？", fx:{yao:-10,wei:-8},
+          r:[[-1,"谢罪本递上去，没有回音。你忽然明白——他要的不是你的罪，是你的名。"]] } ] } },
+      { n:[[-1,"嘉靖四十五年十二月，西苑驾崩的丧钟响了。诏狱的门开了——新帝登基，大赦天下。"],
+          [-1,"你走出西市街旧狱，外头的雪停了。王用汲在门口等你，手里拎着一壶酒。"],
+          [2,"刚峰，出来了。外面，变天了。"],
+          [0,"（你回头看了一眼诏狱的门。）天不变，我也要说。"]] }
+    ],
+    win:[["yao",">=",75],["wei","<=",80]],
+    lose:[["wei",">=",95],["yao","<=",40]],
+    wt:"《治安疏》传抄天下。你没死——你活着看见了改元。海青天的名字，从这一疏开始，写进了史书。",
+    lt:"疏稿烧了，或者刀落了。总之，那道《治安疏》没有出现在史书上——大明的史书上，少了一根骨头。" }
+]},
+yan:{ name:"严党 · 严阁老", c:"#c05040", av:"严",
+  desc:"保权、敛财、供奉帝王、替主上背骂名。历史说你们输了——你能不能，赢回来？",
+  levels:[
+  { t:"改桑献策", hint:"户部亏空二十万，皇上在等一个「富国而不加赋」的法子。<b>改稻为桑</b>——这剂药是你开的。",
+    res:{ qian:50, quan:55, wei:25, sheng:55 },
+    actors:[["严嵩","内阁首辅","#c05040","严"],["严世蕃","工部侍郎","#e07040","蕃"],["徐阶","内阁次辅","#7ec8ff","徐"]],
+    nodes:[
+      { n:[[-1,"值房。严世蕃把算盘打得震天响：浙江一省改桑，三年可增税银百万。"],
+          [1,"爹，这可是天大的功劳！皇上正为亏空发愁，咱们递梯子，就是递忠心。"]] },
+      { c:{ p:"这剂药递上去，治的是国库的病，抓的是浙江的药。", o:[
+        { t:"递。——「富国而不加赋，舍此莫由。」", h:"功劳是严党的，骂名也是", fx:{qian:12,sheng:6,wei:8},
+          r:[[1,"皇上准了！郑泌昌、何茂才都是咱们的人，浙江翻不了天。"],
+             [-1,"你提笔拟旨。窗外，徐阶的门房，悄悄往西苑的方向去了。"]] },
+        { t:"递，但加一条：「田价官定，禁贱买民田」", h:"世蕃会说你多此一举", fx:{qian:8,wei:3,sheng:4},
+          r:[[1,"爹！加这条，大户们还怎么买田？咱们还怎么……"],
+             [0,"住口。药要治病，不能要命。要命的药，最后要的是我们的命。"]] },
+        { t:"不递。——让户部自己想办法", h:"皇上会失望，徐阶会窃喜", fx:{qian:-8,sheng:-6,wei:-5},
+          r:[[1,"爹！到手的功劳，就这么撒出去？"],
+             [-1,"数日后，徐阶的门生「恰好」上了一道折子，说的也是改稻为桑。你盯着那道折子看了很久——这个徐阶，藏得深。"]] } ] } },
+      { n:[[-1,"改桑令下，浙江的动作比你想的还快。半年，淳安、建德的大户买田万亩，流民开始北上。"],
+          [2,"（徐阶在阁中散值时「无意」提起。）阁老，浙江的流民，都到北京城下了。御史的折子，怕是要来了。"]] },
+      { c:{ p:"御史的弹章在路上。你的应对是——", o:[
+        { t:"叫郑泌昌「安抚」：给流民一口粥，打发回籍", h:"粥里有没有沙子，只有郑泌昌知道", fx:{wei:6,qian:-4},
+          r:[[1,"爹，泌昌回话：流民已散。就是……散的时候，死了几个人。"],
+             [-1,"你闭上眼。几个人，换一省的局面——这笔账，你会算，皇上也会算。"]] },
+        { t:"主动具本：「改桑善政也，执行者过也」——弃车保帅", h:"砍的是自己人的头", fx:{wei:-8,sheng:5,quan:-5},
+          r:[[1,"爹！何茂才是咱们的人！说砍就砍？"],
+             [0,"不砍他，下一步砍的就是你。去，把拟好的罪本送来。"]] },
+        { t:"让世蕃去户部「走一趟」，把弹章压下来", h:"纸包不住火，但纸能拖时间", fx:{wei:10,qian:5,sheng:-4},
+          r:[[-1,"弹章压了三个月。三个月后，它们变成十本，从六科廊里飞出来——压得越久，飞得越高。"]] } ] } },
+      { n:[[-1,"年底，浙江税银入库，户部的亏空补了大半。皇上在青词上批了「知道了」三个字——对严党来说，这就是天恩。"],
+          [1,"爹，您看，皇上心里还是有咱们的。"],
+          [-1,"你望着那三个字，没有说话。你伺候了皇上二十年，你知道——「知道了」后面，往往跟着「但是」。"]] }
+    ],
+    win:[["qian",">=",55],["sheng",">=",50],["wei","<=",60]],
+    lose:[["wei",">=",90],["sheng","<=",25]],
+    wt:"税银入库，亏空得补，皇上朱笔「知道了」。改桑这剂虎狼药，暂时没吃死人——至少没吃死自己人。",
+    lt:"浙江的流民进了北京城，御史的弹章堆满了廊下。皇上没有问罪——他只是把改桑的差事，交给了别人。" },
+
+  { t:"京察大计", hint:"京察之年，御史们盯着严党的「贪」字。党羽遍布天下，<b>保谁，弃谁，是一门手艺</b>。",
+    res:{ quan:50, wei:35, sheng:50, qian:45 },
+    actors:[["严嵩","内阁首辅","#c05040","严"],["严世蕃","工部侍郎","#e07040","蕃"],["鄢懋卿","巡盐御史","#c05040","鄢"]],
+    nodes:[
+      { n:[[-1,"京察在即。都察院的考语册子上，严党名字旁都画了圈——清流们管这叫「拔桩」。"],
+          [1,"爹，鄢懋卿两淮巡盐，一年孝敬咱们三百万。都察院要动他，说什么也不能让他开口。"]] },
+      { c:{ p:"鄢懋卿是钱袋子，也是定时炸弹。京察册上，怎么写他？", o:[
+        { t:"保。——「鄢某办盐九年，岁课不缺，堪任繁剧。」", h:"保他，就是把自己押上去", fx:{quan:6,wei:12,qian:8},
+          r:[[2,"爹英明！盐税的银子，下个月就到。"],
+             [-1,"都察院的弹章当天到了：「严党私盐，根蟠盘错。」第一句，就是鄢懋卿。"]] },
+        { t:"弃。——考语「不谨」，让他致仕", h:"钱袋子破了，但人头保住了", fx:{wei:-10,qian:-10,quan:-4},
+          r:[[2,"爹！我跟他爹是一拜之交！说扔就扔？"],
+             [0,"不扔他，京察之后，扔的就是你。去，叫他连夜出京，别回头。"]] },
+        { t:"调。——把他调去宣府赞画军饷，离盐越远越好", h:"明升暗降，两头交代", fx:{wei:-4,qian:-4,quan:2},
+          r:[[-1,"调令下来，鄢懋卿在衙门里坐了一夜。天亮时，他把两淮盐引的总册，烧了。"]] } ] } },
+      { n:[[-1,"京察榜出。清流们动了浙江一系的三个官——都是你的门生。郑泌昌连夜递信入京：「若朝廷不救，别怪学生不义。」"],
+          [-1,"不义？什么叫不义？你教了他二十年「义」字怎么写——他如今拿这个字，跟你谈价钱。"]] },
+      { c:{ p:"郑泌昌要价：保他的官，否则他供出「改桑摊派」的来处。", o:[
+        { t:"保。——叫吏部把三个名字从察典里抠出来", h:"察典上抠名字，是打吏部的脸", fx:{quan:5,wei:12,sheng:-5},
+          r:[[1,"爹，吏部那边打点好了。名字抠掉了，都察院那边……炸了。"]] },
+        { t:"不保。——「让他去告。告到御前，也是咱们输吗？」", h:"赌皇上护你，赌郑泌昌没证据", fx:{wei:8,quan:-6,sheng:4},
+          r:[[0,"他告谁？告改桑？改桑是御批的。他告到御前，先打死的是他自己。"],
+             [-1,"郑泌昌的状纸没有递出去——他不敢。但你府上的门客，当夜去了浙江。"]] },
+        { t:"给个甜枣：升他的虚衔，换他闭嘴", h:"花钱买平安", fx:{qian:-8,wei:-5,quan:2},
+          r:[[-1,"工部侍郎的虚衔到了杭州。郑泌昌把印信交出去那天，笑着说：阁老的手腕，学生服了。"]] } ] } },
+      { n:[[-1,"京察尘埃落定。严党折了三个官，保住了钱袋子，也保住了你。"],
+          [2,"爹，徐阶今儿散值，绕到都察院，跟御史们喝了半盏茶。"],
+          [-1,"半盏茶。（你放下笔。）记住今天。京察是他递来的刀——刀没砍着人，他比谁都清楚砍人的路数了。"]] }
+    ],
+    win:[["quan",">=",55],["wei","<=",60],["sheng",">=",45]],
+    lose:[["wei",">=",90],["quan","<=",25]],
+    wt:"京察拔桩，一根也没拔动。你的名字还在首辅的票拟上——但徐阶那半盏茶，你记下了。",
+    lt:"京察大计，严党一系罢黜过半。皇上留中了你的申救本——第一次，他没有批「知道了」。" },
+
+  { t:"沈一石之名", hint:"江南首富沈一石「暴病」了。他手里的账，能富严党，也能灭严党。<b>账在，人就不能走；人走，账就不能在。</b>",
+    res:{ qian:45, wei:40, quan:50, sheng:48 },
+    actors:[["严嵩","内阁首辅","#c05040","严"],["严世蕃","工部侍郎","#e07040","蕃"],["沈一石","江南织造商","#e0c060","沈"]],
+    nodes:[
+      { n:[[-1,"八百里加急：杭州沈一石「暴病」，织局无绸可装，西洋船期将误。更急的是——沈一石手里，有三本账。"],
+          [1,"爹，沈一石要是倒了，三本账落到清流手里，咱们全得死。绸子、银子、人头，都在他一家。"]] },
+      { c:{ p:"沈一石的「病」，是病，还是价码？", o:[
+        { t:"叫太医去「诊病」——告诉他：皇上还等着绸子", h:"太医的药，治的是态度", fx:{qian:10,wei:6},
+          r:[[2,"（太医出诊第三日。）沈东家「病愈」了。绸子明日装船。只是他说……账，想烧。"],
+             [-1,"烧账？账是他的命，也是你的命。他烧的不是账，是你。"]] },
+        { t:"叫郑泌昌去「探望」——把织局的大账，先抄一份", h:"抄得到账，抄不到人心", fx:{wei:8,qian:5},
+          r:[[2,"账抄来了。爹，只抄到了官账。那两本……沈一石贴身收着。"]] },
+        { t:"亲自修书一封送去杭州", h:"首辅的亲笔，是恩典，也是催命符", fx:{wei:-4,qian:4,quan:3},
+          r:[[0,"（你的信只有八个字。）「绸急，病缓，人保重。」"],
+             [2,"（三日后杭州回话。）沈一石跪读八次，当日「病愈」。他说：阁老保我，我保阁老。"]] } ] } },
+      { n:[[-1,"绸子装船了。可海瑞在淳安放告，御状一路递到了通政司——状子上，「沈一石」三个字出现了十七次。"],
+          [1,"爹，御状要是过了通政司，皇上亲读，咱们就得给沈一石陪葬。"]] },
+      { c:{ p:"御状在路上。你拦，还是不拦？", o:[
+        { t:"叫通政司「缓递」——状子可以老在柜子里", h:"柜子挡得住纸，挡不住人", fx:{wei:10,quan:4},
+          r:[[-1,"御状在通政司的柜子里躺了四十天。第四十一天，海瑞自己进京了。"]] },
+        { t:"让沈一石「自清」——他自己上表，把海瑞打成「刁民」", h:"狗咬狗，最体面", fx:{wei:5,qian:-5,sheng:-3},
+          r:[[2,"沈一石递了辩冤本，反告海瑞「纵民抗法、阻挠国策」。爹，两头都在喊冤。"]] },
+        { t:"断尾。——叫沈一石「病死」，账随人走", h:"灭口，是最贵的药", fx:{wei:-8,qian:-12,sheng:-6},
+          r:[[2,"（世蕃的声音低下去。）爹……沈一石昨夜「上吊」了。账，烧了。烧干净了。"],
+             [-1,"你盯着他看了很久。烧干净了？你信吗？你不信。可你也只能信。"]] } ] } },
+      { n:[[-1,"深夜，你独自在值房。案上是沈一石「烧剩」的账页——三页，页页干净。干净得像是有人替他烧的。"],
+          [0,"（你提笔，把三页纸凑灯上点了。）……世蕃啊世蕃，你收的礼，何止三本账。"],
+          [-1,"火盆的光映在你脸上。这一年你八十五岁了，头一次觉得，这座朱楼的地基，是空的。"]] }
+    ],
+    win:[["qian",">=",50],["wei","<=",65],["sheng",">=",40]],
+    lose:[["wei",">=",90],["qian","<=",15]],
+    wt:"绸船出海，账页成灰。沈一石的名字从所有文书上消失了——你保住了严党，代价是夜里再不敢点灯。",
+    lt:"沈一石死了，账没死。御状、辩本、残账，像三把刀，悬在严党头顶——刀是海瑞递的。" },
+
+  { t:"倒严之夜", hint:"皇上密召徐阶入对，御案上摆着山东道史朝远的弹章。<b>风向变了</b>——你要做的，是让楼塌的时候，不压死自己。",
+    res:{ quan:45, wei:72, sheng:48, qian:40 },
+    actors:[["严嵩","内阁首辅","#c05040","严"],["严世蕃","工部侍郎","#e07040","蕃"],["徐阶","内阁次辅","#7ec8ff","徐"]],
+    nodes:[
+      { n:[[-1,"万寿节宴上，皇上第一次没有饮严党敬的酒。散席时，吕芳奉旨把徐阶叫住了——说了半句话，声音低得只有御前的人听见。"],
+          [-1,"半句话。你活了八十五年，听得出那半句话的分量——那是刀出鞘的声音。"]] },
+      { c:{ p:"宴散人静。你知道，留给严党的时间，按月算了。", o:[
+        { t:"叫世蕃「闭门思过」，自断一臂，向皇上表态", h:"断臂求生，臂是亲儿子", fx:{wei:-10,quan:-8,sheng:6},
+          r:[[1,"爹！我是你亲生的！"],
+             [0,"正因为是亲生的，才叫你活。去，回高老庄「养病」。宫里的事，爹来扛。"]] },
+        { t:"连夜求见皇上——「老臣有罪，乞骸骨」", h:"以退为进，赌皇上的旧情", fx:{wei:-5,sheng:3,quan:-5},
+          r:[[0,"（平台召对，你跪了很久。）老臣事陛下二十一年，罪该万死。惟愿陛下，念在青词的份上……"],
+             [2,"（皇上没有起来，也没有叫你起来。）"]] },
+        { t:"背水一战——叫御史们反扑徐阶", h:"最后的獠牙", fx:{wei:15,quan:5,sheng:-8},
+          r:[[1,"爹！只要把徐阶打倒，咱们就赢了！"],
+             [-1,"反扑的弹章递上去，像石子丢进深井。皇上只批了四个字：「两俱勿论。」——勿论，就是已经定了。"]] } ] } },
+      { n:[[-1,"弹章终于压不住了。山东道史朝远列严党十大罪，御前发抄。你的名字，在第一个。"],
+          [2,"（徐阶在阁里，把票拟一份份写得极恭敬，恭敬得近乎哀悼。）"]] },
+      { c:{ p:"最后的票拟权还在你手里。最后一笔，怎么落？", o:[
+        { t:"认。——「臣老矣，万事付之陛下。」保全家族", h:"认罪保族，史书骂你，史书也饶你", fx:{wei:-12,sheng:5,quan:-6},
+          r:[[0,"（你跪在御前，把一生的骄傲，折成一纸罪本。）老臣，罪该万死。"],
+             [-1,"皇上留了你一命，削籍还乡。你走出宫门时，雪落在你肩上——二十一年，像一场雪。"]] },
+        { t:"不认。——把「改桑、御状、边饷」的来龙去脉，写成密疏递上去", h:"鱼死网破，网是皇上的", fx:{wei:15,sheng:-10},
+          r:[[-1,"密疏递上去的第三天，缇骑到了严府。皇上朱批：「密疏何来？君臣之道，尔尽坏之。」"],
+             [-1,"你到死才明白：你可以有罪，不可以有牌。"]] },
+        { t:"走。——当夜出京，回江西，什么都不递", h:"首辅弃印而逃，是死罪，也是活路", fx:{wei:-8,quan:-8,sheng:-5},
+          r:[[-1,"你留印于阁，轻车出广仪门。次日朝廷追还，你已过了卢沟桥。"],
+             [-1,"皇上看着空了的首辅案，半晌，说了一句：「嵩，倒也会躲。」"]] } ] } },
+      { n:[[-1,"抄家的旨意到了严世蕃的高老庄。金银如山，抄了半个月。"],
+          [-1,"而在江西分宜的旧宅里，你坐在灯下，面前是一卷没写完的青词。窗外，抄家的差役还没来——给你留了三天。"],
+          [0,"（你提笔，把「青词」两个字，轻轻划去，写了两个字。）忍，等。——留给后人吧。"]] }
+    ],
+    win:[["wei","<=",70],["sheng",">=",40],["quan",">=",30]],
+    lose:[["wei",">=",95],["sheng","<=",20]],
+    wt:"楼塌了，你在楼外。削籍还乡，妻孥俱全。分宜的老人在雪地里扫出一条路，说：阁老回来了。",
+    lt:"狱成，世蕃弃市，你被削籍，病死途中。严党的朱楼，从地基开始塌——地基里埋着的，是浙江的田、沈一石的账、和那三本没烧干净的册子。" }
+]},
+qingliu:{ name:"清流 · 徐阁老", c:"#7ec8ff", av:"徐",
+  desc:"倒严是一场二十年的潜伏。你要忍人所不能忍，等一个时机，一击致命。",
+  levels:[
+  { t:"忍", hint:"严党当国，门生故吏遍天下。你在次辅的位子上坐了六年，<b>笑，是你唯一的兵器</b>。",
+    res:{ quan:45, sheng:50, wei:25, ref:35 },
+    actors:[["徐阶","内阁次辅","#7ec8ff","徐"],["门生","中书舍人","#9aa5a0","生"],["严世蕃","工部侍郎","#c05040","蕃"]],
+    nodes:[
+      { n:[[-1,"严府寿宴。满朝文武的贺礼排到了大街上——你的礼单，是最薄的一份，也是最体面的一份：青词一函，寿联一副。"],
+          [2,"（严世蕃当众拆开你的联子，念出声。）「昔闻东海三山岛，今见西园八百春」——哈哈，徐阁老的字，比我的好！"]] },
+      { c:{ p:"满堂哄笑里，你在笑。下值的马车上，门生忍不住了。", o:[
+        { t:"「字是好字，联是寿联，阁老受得起。」——笑着说完", h:"忍，把今天记进册子", fx:{wei:-3,quan:3},
+          r:[[1,"先生！他当众折您的面子！"],
+             [0,"面子？（你掀开车帘，看严府的灯火。）我今天的礼，他收了；我明天的话，他就得听。记下来：今日，他拆我的联，念了三遍。"]] },
+        { t:"称病，提前告退", h:"清高，但露了情绪", fx:{wei:3,sheng:2},
+          r:[[1,"先生，您这一走，明日满京城都说：徐阁老与严阁老，面和心不和。"],
+             [0,"说就和吧。（你放下车帘。）水至清则无鱼——我这条鱼，还要在浑水里养二十年。"]] },
+        { t:"席间「失手」泼酒，湿了严世蕃的袖子", h:"装傻，是清流的童子功", fx:{wei:-2,quan:-2},
+          r:[[2,"（严世蕃拍着袖子大笑。）徐阁老这是嫌我寿礼收重了，替我洗洗手？"],
+             [-1,"满座皆笑。你也笑。回到府里，你在日记里写：今日袖中之酒，是来日刀上之血。"]] } ] } },
+      { n:[[-1,"开春，门生们凑钱要修一部《纲录续编》，书里「不小心」收录了几条严党批红的原件。书坊的掌柜连夜来问：刻，还是不刻？"],
+          [1,"先生，原档都在。刻出去，严党的状子就递到都察院了——不过是他们的状子告我们的书。"]] },
+      { c:{ p:"一部书，可能变成一把刀。也可能变成一副棺材。", o:[
+        { t:"刻。——「史笔如铁，总得有人执笔。」", h:"书成之日，就是被告之时", fx:{ref:10,wei:10,sheng:4},
+          r:[[-1,"书刻成了，流传极快。三个月后，都察院果然收到弹章——弹的是你「私修国史，讪谤辅臣」。"],
+             [0,"（你在弹章的抄件上批了两个字。）存照。——让他们知道，我们刻得出，就印得起。"]] },
+        { t:"不刻。原档誊抄三份，分藏三地", h:"刀要藏在鞘里", fx:{wei:-5,quan:4},
+          r:[[0,"书不刻。档，抄三份——一份给我儿子，一份给你，一份，我亲自收着。"],
+             [-1,"门生后来才明白：那三份抄档，二十年后果然要了严党的命。"]] },
+        { t:"书刻，但删去所有指名道姓", h:"绵里藏针", fx:{ref:5,wei:2},
+          r:[[-1,"书坊刻成了「匿名版」。严党看了挑不出错，清流看了心领神会——骂人不带名字，骂的是所有人。"]] } ] } },
+      { n:[[-1,"这年冬天，严嵩「无意」间在皇上跟前夸了你一句：「徐阶谨愿，事事让老臣。」——这是捧杀的前奏。"],
+          [1,"先生，他要在皇上跟前把您捧成「贤」，好叫您动不得。"]] },
+      { c:{ p:"被政敌夸「贤」，是清流最危险的时刻。", o:[
+        { t:"上谢恩本，自请「协理阁务，悉听元辅」", h:"把「让」字演到底", fx:{wei:-6,quan:5},
+          r:[[-1,"谢恩本上去，严嵩笑了，皇上也笑了。只有你知道，「悉听元辅」四个字，是写给史书看的——来日倒严，你一寸让过谁？"]] },
+        { t:"照旧办事，一票一拟，绝不让", h:"谨愿是演给皇上看的，不是演给严嵩的", fx:{quan:6,wei:6},
+          r:[[2,"（严世蕃翻着票拟。）徐阶的票，越来越硬了。爹，留神。"],
+             [-1,"严嵩摆摆手：让他硬。硬刀先折。"]] },
+        { t:"托病乞休，试探皇上口风", h:"以退为进的试纸", fx:{sheng:5,wei:-3},
+          r:[[0,"（温旨留任，四个字：「卿尚强起。」）"],
+             [-1,"你把「卿尚强起」四个字看了三遍——皇上还需要你，还需要你「强」。好，那就强下去。"]] } ] } },
+      { n:[[-1,"除夕。你在书房翻开一本新册子，封皮上写了两个字：倒严。"],
+          [0,"（你在第一页写下。）嘉靖四十三年除夕。今日严世蕃骂我，我笑。记之。"],
+          [-1,"烛花爆了一声。你吹熄灯——明天的笑，还得接着演。"]] }
+    ],
+    win:[["quan",">=",50],["wei","<=",60],["sheng",">=",45]],
+    lose:[["wei",">=",90],["quan","<=",20]],
+    wt:"一年过去，你的笑没露过破绽。严党把你当朋友，皇上把你当贤臣——只有那本册子知道，你是猎人。",
+    lt:"你的一次失态，落进了严党的耳朵里。次辅的位子没坐稳，先坐进了都察院的弹章里。" },
+
+  { t:"青词宰相", hint:"皇上的青词，满朝只有你和严嵩写得动。<b>青词是文章，也是奏折</b>——写给上天看的话，皇上句句都在听。",
+    res:{ sheng:50, quan:45, wei:30, ref:45 },
+    actors:[["徐阶","内阁次辅","#7ec8ff","徐"],["李春芳","翰林","#9aa5a0","李"],["严世蕃","工部侍郎","#c05040","蕃"]],
+    nodes:[
+      { n:[[-1,"永寿宫灾后，皇上亲问：青词谁写？严嵩举荐你——他要借青词试探：你的笔，到底向着谁。"],
+          [2,"徐阁老，皇上点名要你的青词。写得好，圣眷日隆；写得不好……嘿嘿。"]] },
+      { c:{ p:"这篇青词，一字千金。你写什么？", o:[
+        { t:"写「修省」——借上天之意，劝皇上省刑薄赋", h:"把百姓的苦，写成神仙的话", fx:{sheng:8,wei:-5,ref:5},
+          r:[[-1,"御前读青词，皇上听到「省刑薄赋」四字，抬起了眼皮。"],
+             [0,"（你俯身。）上天有好生之德。陛下代天行道，臣谨以天意奏。"]] },
+        { t:"写「祥瑞」——歌功颂德，滴水不漏", h:"安全，但浪费了千金", fx:{sheng:3,wei:3},
+          r:[[2,"（严世蕃看完，笑。）徐阁老这支笔，也会说软话了。"],
+             [-1,"皇上批了两个字：知道了。你知道——「知道了」不是「写得好」。"]] },
+        { t:"让李春芳代笔，你润色", h:"青词宰相的名声，可以分着背", fx:{sheng:5,quan:3,wei:-3},
+          r:[[1,"先生，学生这支笔，配得上御前吗？"],
+             [0,"配得上。从今往后，你的青词，就是我的青词——咱们的青词，是写给来日看的。"]] } ] } },
+      { n:[[-1,"夏，严党把持的礼部上疏：请皇上加严嵩「上柱国」勋衔。内阁票拟，落到了你的笔上——严嵩让你自己票自己的对头。"],
+          [1,"先生，票「可」，他明日就是上柱国；票「不可」，您就是阻挠勋贤。"]] },
+      { c:{ p:"一支笔，两头刀。", o:[
+        { t:"票「可」。——附一句「容臣等详议典礼」", h:"准了今天，拖死程序", fx:{wei:-4,quan:5},
+          r:[[2,"（严世蕃得意。）徐阁老到底识相。"],
+             [-1,"「详议典礼」四个字，把上柱国拖进了礼部的公文山里——一拖，就是三年。"]] },
+        { t:"票「不可」——「勋衔酬军功，未有阁臣受上柱国之例」", h:"硬碰硬，碰的是圣眷", fx:{wei:10,sheng:6,ref:6},
+          r:[[0,"（你引经据典，洋洋千言。）阁臣带柱国，自本朝无此体统。"],
+             [-1,"皇上朱笔圈了「无此体统」四字——严嵩的上柱国，没了。严党的恨，有了。"]] },
+        { t:"把票拟的笔，让给阁里最老的大学士", h:"刀不沾自己的手", fx:{wei:-2,quan:-3},
+          r:[[-1,"老阁老颤巍巍票了个「可」。严党谢了老阁老，清流骂你滑头——两头不讨好，但两头都还安全。"]] } ] } },
+      { n:[[-1,"秋闱后放榜，严党门生占了半榜。你的门生李春芳高中一甲——你的翰林故旧里，终于有人进了清要之地。"],
+          [1,"先生，都察院新科十三道御史里，有三位是您的门生。"]] },
+      { c:{ p:"新科御史们摩拳擦掌，要「言事」。你给他们什么令？", o:[
+        { t:"「言。但言小事——言风闻言事之弊，言灾异，言漕运。」", h:"小刀试刀，别见血", fx:{ref:8,wei:3},
+          r:[[-1,"三位新御史连上七道本章，道道安全，道道在理。严嵩懒得理——他不知道，刀磨得越慢，越亮。"]] },
+        { t:"「都给我忍着。没有我的字，一道本也不许上。」", h:"忍到刀出鞘那天", fx:{wei:-6,quan:3},
+          r:[[0,"（你给三位御史各写了一封信，信上只有八个字。）位卑言高，罪也。俟时。"],
+             [-1,"三位御史把信收进袖里，从此上折之前，先寄一封家书——他们学会了你这一派的命根子：等。"]] },
+        { t:"「言严世蕃。」——让新刀见血", h:"新御史撞严党，是鸡蛋碰石头", fx:{ref:-8,wei:12},
+          r:[[-1,"第一道弹章上去，第三天，弹人的御史就被外放了。你在吏部的调令上画押，一笔都没抖——心抖了。"]] } ] } },
+      { n:[[-1,"冬夜，你收到严府请帖：阁老八十五岁寿辰，命你「务必赏脸」——满京城都盯着这场寿宴。"],
+          [0,"（你提笔回帖，只写四个字。）一定到。"],
+          [-1,"写完你自己笑了。这一笑，连烛火都看出来了：是真心。能笑着给仇人拜寿的人，天下事可为了。"]] }
+    ],
+    win:[["sheng",">=",55],["ref",">=",50],["wei","<=",65]],
+    lose:[["wei",">=",90],["sheng","<=",25]],
+    wt:"青词御前独眷，勋典寸步不让，新科御史布成暗棋。严嵩还在等你的寿礼——他等的是贺表，你备的是丧钟。",
+    lt:"一篇青词触了龙鳞，一纸票拟结了死仇。圣眷收回的那天，你在值房坐到三更——刀还没磨快，鞘先折了。" },
+
+  { t:"浙江案", hint:"沈一石案、改桑案、御状案——三案并卷，浙江是严党的钱袋子，<b>也是命门</b>。海瑞的状纸，递到了你门口。",
+    res:{ ref:50, wei:40, sheng:48, quan:45 },
+    actors:[["徐阶","内阁次辅","#7ec8ff","徐"],["海瑞","淳安知县","#4ecb71","海"],["严世蕃","工部侍郎","#c05040","蕃"]],
+    nodes:[
+      { n:[[-1,"深夜，一封没有署名的状纸从后门递进徐府——是海瑞托人千里送来的浙江实档：田价、人命、桑价、织局的账。"],
+          [1,"先生，这纸状纸要是接了，就是接了严党的战书。海瑞一个七品，他敢递，您敢接吗？"]] },
+      { c:{ p:"状纸在案上。接，还是不接？", o:[
+        { t:"接。——「浙江的百姓，把状纸递到我门口了。」", h:"接状纸，就是接火种", fx:{ref:10,wei:10,sheng:4},
+          r:[[0,"（你逐页誊录，誊到天亮。）他敢递，我就敢烧——不是烧状纸，是烧它该烧的东西。"]] },
+        { t:"原封不动，转呈都察院——「公事公办」", h:"最安全的接法", fx:{wei:5,ref:3},
+          r:[[-1,"都察院收了状纸，锁进柜里。你算准了：柜子锁不住——京察之年，柜子的钥匙，会换人。"]] },
+        { t:"不见。——「不见此纸，不闻此事。」", h:"火种退回火里", fx:{wei:-5,ref:-6},
+          r:[[-1,"状纸原路退回。三个月后海瑞自己进京，一路告，一路抄，抄到南京——你听说了，什么也没说。"]] } ] } },
+      { n:[[-1,"三案并卷，皇上问内阁：浙江的事，怎么办？严嵩举郑泌昌自辩，清流举海瑞对质。两派人马，在文华殿外撞了个照面。"],
+          [2,"（严世蕃拦在你轿前，皮笑肉不笑。）徐阁老，浙江的案子，查的是官，还是查的是国策？国策要是错了……嘿嘿，批红的是谁呢？"]] },
+      { c:{ p:"严世蕃把最毒的一句话，当面说了出来——国策是御批的。", o:[
+        { t:"「查官，不查策。——贪墨是罪，改桑不是。」", h:"给他一个台阶，也给自己留一条活路", fx:{wei:-6,quan:5},
+          r:[[2,"（严世蕃笑了。）徐阁老到底是明白人。"],
+             [-1,"你这句话传进西苑，皇上点了点头——查贪不查策，保的是皇上的脸面。你的案子，能查了。"]] },
+        { t:"「国策对错，皇上自有明断。臣等只问浙江死了多少人。」", h:"把刀锋引回人头", fx:{wei:8,sheng:6,ref:5},
+          r:[[0,"（你在殿上只报了一个数。）浙江改桑以来，流民四万，人命三百七十。陛下，臣请查。"],
+             [-1,"御座上没有声音。严嵩跪下去替浙江请罪——第一次，他跪得那么低。"]] },
+        { t:"不接话，回府称病", h:"让子弹飞一会儿", fx:{wei:3,quan:-3},
+          r:[[-1,"你称病三日。三日内严党四处活动，清流群龙无首——第四日你上朝，发现案子已经被「议」掉了一半。"]] } ] } },
+      { n:[[-1,"查案的人选定了：你举的海瑞对质，严党举的刑部主事问案。公堂未开，风声先紧——海瑞在杭州城外，被人「请」进了驿站，一住七天。"],
+          [1,"先生，海瑞被扣在驿站，严党放话：他要是敢上堂，淳安的老底就翻出来——他那点「折价赈济」的旧账。"]] },
+      { c:{ p:"你的证人被扣在半路。救，还是不救？", o:[
+        { t:"八百里加急直递御前：「证人未至，国法先辱。」", h:"为救一个七品，押上次辅的脸面", fx:{ref:8,wei:6,sheng:3},
+          r:[[0,"（御前你只说了一句。）陛下，扣一个知县容易。天下人看见的，是朝廷怕一个知县。"],
+             [-1,"当夜，驿站的门开了。海瑞进京那天，没人再敢「请」他。"]] },
+        { t:"叫浙江的门生「护送」海瑞进京", h:"暗渠救人，快，但脏", fx:{ref:5,wei:3},
+          r:[[-1,"「护送」的驿马三天跑完十五天路。海瑞到京时瘦脱了形，怀里抱着浙江的田册——比命抱得紧。"]] },
+        { t:"按兵不动——让严党自己演", h:"看戏，但证人可能死", fx:{wei:-4,ref:-5},
+          r:[[-1,"海瑞在驿站「病」了。严党送医送药，照顾得无微不至——三个月后他回淳安，田册被「借看」，再没还回来。"]] } ] } },
+      { n:[[-1,"公堂对质那日，海瑞当堂背出浙江田价，一字不差。郑泌昌的脸色，比堂外的天还灰。"],
+          [2,"（散堂时，严世蕃在角门等你。）徐阁老，今天赢的是一个七品。您猜，皇上心里记的是谁？"],
+          [0,"（你看着他，笑了笑。）记的是浙江死了多少人。——放心，会记得越来越清的。"]] }
+    ],
+    win:[["ref",">=",60],["wei","<=",65],["sheng",">=",45]],
+    lose:[["wei",">=",90],["ref","<=",25]],
+    wt:"浙江案落槌：郑泌昌、何茂才戴罪办事，改桑「暂行停止」。你保住了海瑞，海瑞保住了证据——严党的钱袋子，第一次漏了底。",
+    lt:"浙江案查而不决，人证物证一一「病」倒。严党的钱袋子纹丝不动——你的状纸，成了他们案头的笑话。" },
+
+  { t:"倒严", hint:"密疏已递，御前已发，严世蕃「闭门思过」。<b>最后一脚，你来踹</b>——踹歪了，塌的是你自己。",
+    res:{ quan:50, wei:50, sheng:55, ref:55 },
+    actors:[["徐阶","内阁次辅","#7ec8ff","徐"],["张居正","翰林院","#e0a040","张"],["严嵩","内阁首辅","#c05040","严"]],
+    nodes:[
+      { n:[[-1,"皇上把你单独留在西苑，问了一句没头没尾的话：「徐卿，严嵩老了，你看，谁可代之？」"],
+          [-1,"这不是问句，是考题。答错一个字，二十年白等。"]] },
+      { c:{ p:"「谁可代之？」——你答谁？", o:[
+        { t:"「老臣之事，非臣所敢议。惟陛下独断。」", h:"最正确的废话", fx:{sheng:6,wei:-5},
+          r:[[0,"（你俯身。）严嵩去留，陛下之权，非臣之分。臣只知办事，不知其他。"],
+             [-1,"皇上盯着你看了很久，忽然笑了——他等的就是这句「不知其他」。不知其他的人，才敢用。"]] },
+        { t:"「李春芳谨厚，可大用。」", h:"推自己人，但露了私", fx:{quan:6,wei:5},
+          r:[[-1,"皇上不置可否。当夜吕芳来传话：皇上说，徐卿荐人，像严嵩当年。——你惊出一身冷汗。"]] },
+        { t:"「阁务繁剧，愿陛下早简元辅，以安天下。」", h:"催刀", fx:{wei:6,sheng:3},
+          r:[[-1,"皇上把茶盏放下，没有接话。你出西苑时后背是凉的——催皇帝下决心的人，皇帝也会记一辈子。"]] } ] } },
+      { n:[[-1,"严世蕃被逐回籍，严嵩成了没牙的老虎。都察院的弹章雪片一样飞来——现在，轮到清流决定：咬多狠。"],
+          [1,"（张居正深夜来访。）先生，史朝远的十大罪本已成稿。学生只求先生一件事——留严嵩一命，杀世蕃，够了。"]] },
+      { c:{ p:"斩草，还是除根？", o:[
+        { t:"「杀世蕃，全嵩首领。」——留严嵩全尸善终", h:"给天下看：清流不嗜杀", fx:{sheng:8,wei:-8,quan:5},
+          r:[[0,"（你在票拟上落笔。）嵩，退。世蕃，法办。"],
+             [-1,"消息传出，严嵩在值房坐了一夜。第二天他递上致仕本，皇上批了——批得比谁都快。"]] },
+        { t:"赶尽杀绝——严嵩父子，一个不留", h:"痛快，但清流会变成另一个严党", fx:{wei:10,sheng:-6,quan:-5},
+          r:[[-1,"你连上三本，把八十五岁的严嵩钉在十大罪上。皇上都嫌急了——朱批：「首辅旧臣，从长计议。」"],
+             [-1,"从长计议。你忽然懂了：你把皇上逼到了要护他的地步。"]] },
+        { t:"引而不发——让严嵩自己「乞休」", h:"最体面的收场", fx:{wei:-5,quan:3},
+          r:[[-1,"你的门生只递了一道本：「嵩老矣，宜全令名。」严嵩自己看懂了，三日后，致仕本到了。"]] } ] } },
+      { n:[[-1,"严嵩致仕还乡那天，你替他写了离京的途费勘合——按首辅全礼，一站不缺。"],
+          [2,"（张居正不解。）先生，他倒台，您送他？"],
+          [0,"（你望着南官道上的车马。）居正，记住——我们倒严，不是因为我们恨他。是因为天下不该只有一个严嵩。"],
+          [-1,"车马走远了。你在原地站了很久。二十年了，册子上的字，今天可以合上了。"]] }
+    ],
+    win:[["sheng",">=",60],["wei","<=",70],["quan",">=",50]],
+    lose:[["wei",">=",90],["sheng","<=",30]],
+    wt:"严嵩削籍，世蕃伏法，内阁换了天。你坐上首辅的位子那天，只说了一句话：「阁务从今日起，票拟必当公之。」——二十年的刀，入鞘了。",
+    lt:"倒严之夜，你自己也塌了半座楼。皇上记着你催刀的手、荐人的私——首辅的位子还没坐热，都察院的弹章，已经转向了你。" }
+]},
+silu:{ name:"司礼监 · 吕芳", c:"#b07ae0", av:"吕",
+  desc:"不党不私，伺候皇上、保全裕王、周旋严徐。宫里的水至清则无鱼——可水浑了，淹的是所有人。",
+  levels:[
+  { t:"当家", hint:"司礼监掌印太监吕芳，白天替皇上批红，晚上替皇上熬药。<b>严党的礼、清流的信、裕王的使者</b>——都在等你这盏灯。",
+    res:{ sheng:50, quan:50, wei:25, ping:50 },
+    actors:[["吕芳","司礼监掌印","#b07ae0","吕"],["陈洪","秉笔太监","#c05040","陈"],["黄锦","御马监","#e0a040","黄"]],
+    nodes:[
+      { n:[[-1,"夜，直房。案上三样东西：严府送来的一对玉镯、徐府转来的一封家书、裕王府长史「求见」的口信。"],
+          [1,"（陈洪在旁阴阳怪气。）干爹，严阁老的镯子，成色好啊。这年头，孝敬司礼监的，比孝敬皇上的还勤。"]] },
+      { c:{ p:"三样东西，三个方向。你怎么动？", o:[
+        { t:"镯子入库登账，家书原封退回，裕王府——不见", h:"账上干净，门上干净", fx:{sheng:6,wei:-5},
+          r:[[0,"（你叫掌司取账本来。）严府的礼，登记，入库。礼单明儿抄一份，送御前。"],
+             [1,"（陈洪的脸黑了。）干爹，这么着，往后谁还敢孝敬咱们？"],
+             [0,"孝敬？（你把账本合上。）咱家要他们孝敬的，是「不敢不送」——不是「收了」。"]] },
+        { t:"镯子退回，家书留下，裕王府的口信烧了", h:"留一封清流的信，是留一条后路", fx:{quan:5,wei:6},
+          r:[[-1,"家书你读了，回了一个「安」字。裕王府的口信，看着它烧成灰——烧的时候，手很稳。"]] },
+        { t:"三样都不动，先研墨批红", h:"天塌下来，先当值", fx:{sheng:4,ping:5},
+          r:[[0,"（你把三样东西推到案角，铺开本章。）皇上的本章批不完，玉镯能变成枷锁，家书能变成罪证。"],
+             [-1,"批红到三更。第二天，三样东西的主人各收到一句话：「吕公公当值，没空。」——三个人，三种安心。"]] } ] } },
+      { n:[[-1,"晨，精舍。皇上批本章，忽然把笔搁下了：「吕芳，外头都说，严嵩的票拟，到你手里十批九准。有这事么？」"],
+          [-1,"这一问，比刀还快。答得好是忠，答得偏是党。"]] },
+      { c:{ p:"皇上的这一问，怎么答？", o:[
+        { t:"「奴婢只照皇上的意思批。准与不准，皇上朱笔圈过，奴婢才敢动。」", h:"把功劳和罪过都还给皇上", fx:{sheng:8,wei:-6},
+          r:[[0,"（你跪着，声音不高。）本章哪一笔不是御前圈定？奴婢的手，是皇上用惯了的一支笔。"],
+             [-1,"皇上拿起笔，继续批。批了三本，忽然说：「笔用久了，不敢换。」——这是你今日听到的最好的话。"]] },
+        { t:"「严阁老的票拟，是妥当。」——替严嵩说一句", h:"一句公道话，值多少钱，你自己掂", fx:{wei:8,quan:4},
+          r:[[-1,"皇上没抬头，只「嗯」了一声。这一声，你回去想了三夜——是记你的公道，还是记你的党？"]] },
+        { t:"「奴婢该死。往后严阁老的票，奴婢一笔一笔细核。」", h:"表忠表过了，严党会知道", fx:{wei:5,sheng:3,quan:-5},
+          r:[[0,"（你叩首。）奴婢明日就细核。"],
+             [-1,"第二天你果然细核，核出两处小错，封还内阁。严嵩的票拟上多了两个朱点——严党上下，如坐针毡。"]] } ] } },
+      { n:[[-1,"裕王宫里传出话：裕王世子诞辰，宫里按例该有赏。可皇上忘了——不是忘，是不好意思提儿子。"],
+          [2,"（黄锦悄悄来问。）吕公公，世子的赏……您看，是提醒皇上，还是咱们内官监自己凑一份？"]] },
+      { c:{ p:"皇上的儿子，司礼监的规矩。怎么办？", o:[
+        { t:"提醒皇上——「明日是世子千秋」", h:"提醒帝王家事，是掉脑袋的巧功夫", fx:{sheng:5,ping:6,wei:4},
+          r:[[0,"（精舍里静了片刻。）……哦。取内库的玉锁来。就说是……宫务处报上来的。"],
+             [-1,"玉锁送进裕王府。裕王对着玉锁拜了两拜——一拜皇上，一拜你没说破的那半句话。"]] },
+        { t:"内官监自己凑，以「宫里例赏」名义送去", h:"花宫里的钱，买裕王的情", fx:{quan:5,wei:6,ping:-3},
+          r:[[-1,"例赏送进裕王府，账记在内官监。你吩咐：这笔账，誊一份，锁进直房的柜——将来无论谁问，宫里都「没做过多余的事」。"]] },
+        { t:"装不知道", h:"最安全，也最冷", fx:{wei:-3,ping:-5},
+          r:[[-1,"世子的诞辰，宫里无声无息。裕王什么也没说——裕王什么也没说，才是最要命的。"]] } ] } },
+      { n:[[-1,"深夜散值，陈洪堵在宫门口：「干爹，您这一套，严党恨您，清流防您，裕王敬您——皇上呢？皇上用您，可皇上信您吗？」"],
+          [0,"（你提着灯笼，走了三步，回头。）陈洪，咱家伺候皇上，不为信，也不为恨。"],
+          [0,"水至清则无鱼。可水要是浑了——淹死的头一个，就是咱家这样的鱼。"]] }
+    ],
+    win:[["sheng",">=",60],["wei","<=",55],["ping",">=",45]],
+    lose:[["wei",">=",90],["sheng","<=",30]],
+    wt:"严党的礼登了账，清流的信退了回，裕王的赏送了，皇上的问对答了。司礼监的灯又熬过一夜——当家的难，你当明白了。",
+    lt:"一晚上，三样东西没一样处理干净。严党有了你的账，清流有了你的信，裕王有了疑心——司礼监的灯，第一次照见了墙。" },
+
+  { t:"护国本", hint:"皇上疑心裕王，诏狱里关着裕王府的太监。<b>链子一头是太子，一头是你</b>——拽哪头，都疼。",
+    res:{ ben:40, sheng:55, wei:25, ping:50 },
+    actors:[["吕芳","司礼监掌印","#b07ae0","吕"],["陈洪","秉笔太监","#c05040","陈"],["裕王","皇三子","#4ecb71","王"]],
+    nodes:[
+      { n:[[-1,"深夜，皇上面色阴沉：「吕芳，裕王府的太监杨金水，跟外官书信往来，你怎么看？」——杨金水是裕王的心腹，也是你的旧识。"],
+          [0,"（你垂着手。）皇上，杨金水在裕王府，只管香火。"]] },
+      { c:{ p:"皇上要的不是答案，是试探——你站哪边？", o:[
+        { t:"「奴婢替皇上看着。裕王府的香火账，奴婢每旬亲核。」", h:"把监视做成保护", fx:{ben:6,sheng:5,wei:5},
+          r:[[0,"（你顿了顿。）每旬核完，奴婢亲自封送御前。"],
+             [-1,"从此裕王府的账，经你的手到御前——你核的账，笔笔干净。这是你替裕王织的第一层甲。"]] },
+        { t:"「杨金水奴婢知道，老实人。皇上明鉴。」", h:"直接保人，赌皇上的耐心", fx:{ben:8,wei:10,sheng:-3},
+          r:[[-1,"皇上冷笑：「老实人？司礼监的人，个个跟朕说别人老实。」你没再说话——再说，就连你一起「看」了。"]] },
+        { t:"「奴婢去问。问完，从实回皇上。」", h:"最忠的答法，最险的路", fx:{sheng:6,wei:6,ben:-3},
+          r:[[-1,"你去问了杨金水。杨金水跪在地上发抖。你回御前：「信是问药材的，字是奴婢的笔迹——奴婢教他写的。」",
+             ],
+             [-1,"你把信揽到自己头上。皇上盯了你半晌：「朕知道不是你。」——他知道，但他记住了你肯替人顶事。"]] } ] } },
+      { n:[[-1,"冬，西苑流言四起：裕王「阴结朝臣」，严党的人在推波助澜，清流的人沉默不语。裕王闭门不出，称病。"],
+          [1,"（陈洪进言。）公公，裕王称病，外头说是「心虚」。这时候，司礼监该递句话了——递得好，两头做人情。"]] },
+      { c:{ p:"陈洪要替你去「递话」。你递什么？", o:[
+        { t:"不递。——亲自去裕王府「请安」，什么都不说，坐一炷香就走", h:"人到，比话到有用", fx:{ben:12,wei:4,sheng:-2},
+          r:[[2,"（裕王在帘后。）吕公公来了？"],
+             [0,"（你在阶下站定。）奴婢来给王爷请安。安也请过了，奴婢回去当值。"],
+             [-1,"你坐了一炷香，一句国事没提。第二天，宫里的流言自己矮了半截——司礼监掌印去请过安了，裕王「病」得不心虚。"]] },
+        { t:"让陈洪递话：「司礼监保裕王无事」", h:"让狼去传善意", fx:{ben:-5,wei:8},
+          r:[[-1,"陈洪的「保」字传出去，变了三道弯，变成「司礼监与裕王不通」。裕王府的门房，第二天就换了人。"]] },
+        { t:"递话给皇上：「裕王称病，是惧。惧，是孝。」", h:"一个字救一个人", fx:{ben:8,sheng:4,wei:-6},
+          r:[[0,"（精舍里，你说。）王爷不是病，是怕。怕皇上，就是孝。"],
+             [-1,"皇上提笔批本章，笔尖顿了顿：「……叫他入宫陪朕说说话。」——裕王的病，当天就好了。"]] } ] } },
+      { n:[[-1,"腊月，严党指使御史劾裕王「宫禁僭越」——王府新修的墙，高了三寸。三寸墙，能杀死一个皇子。"],
+          [0,"（你在直房对着烛火，把这弹章看了三遍。）墙。三寸。好狠的刀。"]] },
+      { c:{ p:"三寸墙，怎么拆？", o:[
+        { t:"连夜叫裕王府「自行拆矮」，再报御前「裕王自请撤墙」", h:"认怂认得快，刀就追不上", fx:{ben:8,wei:-8,sheng:3},
+          r:[[-1,"墙拆了。弹章递上去，皇上只批了四个字：「王，知礼也。」——严党的刀，砍在棉花上。"]] },
+        { t:"叫黄锦去查：墙砖是哪窑的，银子哪来的——查到严党头上", h:"反手一刀，但会结死仇", fx:{wei:10,ben:5,sheng:-4},
+          r:[[2,"（黄锦查了三天。）公公，砖是江西袁州的窑，银子……过织局的账。"],
+             [-1,"你把这张纸锁进柜里。严党不知道纸在你手里——他们只知道，墙的事，没人再提了。"]] },
+        { t:"不动。——让裕王自己上本请罪", h:"让皇子学会低头，是长远的保", fx:{ben:5,wei:-3,ping:4},
+          r:[[2,"（裕王的请罪本写得极谦。）皇上，臣墙高犯制，臣之过也。"],
+             [-1,"皇上把请罪本留中了。三天后，宫里的旨意下来：赏裕王——赏的是「知礼」。"]] } ] } },
+      { n:[[-1,"除夕，裕王入宫陪皇上说话，出来时在天阶上站住。远处，司礼监直房的灯还亮着。"],
+          [2,"（裕王低声，像是对随从说，又像是对那盏灯说。）宫里这盏灯……不容易。"],
+          [0,"（直房里，你把裕王府的香火账核完最后一笔，吹熄了灯。）——灯熄了，明天还得点。"]] }
+    ],
+    win:[["ben",">=",60],["sheng",">=",50],["wei","<=",60]],
+    lose:[["wei",">=",90],["ben","<=",20]],
+    wt:"墙拆了，流言散了，裕王全了，皇上也没疑你。国本这根弦，你在暗处拨了一年——没人知道，也没人该知道。",
+    lt:"三寸墙成了大案，裕王幽府「养病」，杨金水下了诏狱。你站在雪里望着裕王府的门封条——灯还亮着，可照不进那扇门了。" },
+
+  { t:"严徐之间", hint:"严党与清流全面开战，两边同时给你递了帖子。<b>司礼监的批红笔，往哪边偏一寸，天下就歪一尺</b>。",
+    res:{ ping:50, sheng:52, quan:48, wei:35 },
+    actors:[["吕芳","司礼监掌印","#b07ae0","吕"],["严世蕃","工部侍郎","#c05040","蕃"],["徐阶","内阁次辅","#7ec8ff","徐"]],
+    nodes:[
+      { n:[[-1,"同一天，两封帖子进了司礼监：严府请你「品茗」，徐府请你「赏画」。陈洪磨墨：「干爹，两边都去，是找死；一边不去，是结仇。」"],
+          [1,"（陈洪。）要我说，谁也别去。司礼监的门，关着最值钱。"]] },
+      { c:{ p:"两张帖子，一支笔。", o:[
+        { t:"都不去。回帖：「当值，不敢。」", h:"关门，是最贵的姿态", fx:{ping:8,wei:-5,sheng:4},
+          r:[[-1,"两个「不敢」，两边都挑不出错。当晚严世蕃摔了茶盏，徐阶却笑了——笑你懂行。"]] },
+        { t:"都去。茶也品，画也赏，话都不接", h:"走钢丝，比的是定力", fx:{quan:6,wei:8},
+          r:[[2,"（严府茶宴，绝口不提朝事，只论茶。）"],
+             [1,"（徐府画会，只谈画。）"],
+             [-1,"两边都摸不透你——摸不透，就都还想要。这就是司礼监的价。"]] },
+        { t:"去徐府。——严党如今势大，该让让清流了", h:"天平开始动了", fx:{ping:-8,wei:6,quan:5},
+          r:[[1,"（徐阶只作家常，绝口不提国事。）"],
+             [-1,"你赏完画出来，严府的探子已经在路上了。第二天，严世蕃的话里带了刺：吕公公的画，看得挺闲。"]] } ] } },
+      { n:[[-1,"浙江案的本章到了御前。皇上的意思不明——他把本章发下司礼监，只说了三个字：「你看着。」"],
+          [-1,"三个字，千斤重。「你看着」，是信你，也是试你。"]] },
+      { c:{ p:"浙江案本章，你怎么「看着」？", o:[
+        { t:"原章进呈，一字不动——「奴婢看着，奴婢没看」", h:"把选择权原样奉还", fx:{sheng:6,ping:6,wei:-4},
+          r:[[0,"（你把本章原封不动，连严党夹的私票、清流夹的公论，一并封好。）皇上的本章，奴婢不敢看。"],
+             [-1,"皇上拆开，把两边的夹签都看了。看完笑了：「吕芳这一手，是把考场还给朕。」"]] },
+        { t:"摘出要旨，另缮一份「节略」进呈", h:"节略的笔，就是权", fx:{quan:8,wei:6,ping:-4},
+          r:[[-1,"你的节略不偏不倚——但「不偏不倚」本身，就是一种偏。严党说你帮清流，清流说你护严党。你赢了，也成靶子了。"]] },
+        { t:"拖。——「本章有疑，容奴婢核明再呈」", h:"拖字诀，两边都来求", fx:{wei:8,quan:5,ping:-6},
+          r:[[-1,"三天里，严府的礼、徐府的信，各进了三次司礼监的门。你一概不收，一概不回——然后，把本章呈了上去。"]] } ] } },
+      { n:[[-1,"深夜，皇上忽然问：「吕芳，严嵩、徐阶，你伺候他们，谁像朕？」"],
+          [-1,"精舍里只有丹炉的火苗声。这道题，答谁都是死——答「都不像」，也是死。"]] },
+      { c:{ p:"「谁像朕？」", o:[
+        { t:"「都不像。皇上就是皇上。」", h:"把天聊死，天就安全了", fx:{sheng:8,wei:-6},
+          r:[[0,"（你头也不抬。）严阁老像首辅，徐阁老像次辅。皇上像皇上——奴婢斗胆，谁也不敢像。"],
+             [-1,"皇上大笑，笑完叹了口气：「满朝文武，就你敢跟朕打马虎眼。」——打马虎眼，是君臣之间最贵的信任。"]] },
+        { t:"「徐阶像皇上年轻的时候。」", h:"拍马拍在龙鳞上", fx:{sheng:5,wei:8,ping:-5},
+          r:[[-1,"皇上没接话。第二天，徐阶的票拟，皇上看得格外细——你无意间，给徐阶找了一道窄门。"]] },
+        { t:"「严嵩伺候皇上二十年，最像皇上。」", h:"把严党抬到火上", fx:{wei:6,ping:-6,quan:4},
+          r:[[-1,"这话三天后传进内阁。严嵩连夜进宫谢恩，皇上淡淡一句：「吕芳夸你，朕倒要看看，你像朕什么。」——严嵩出宫时，腿是软的。"]] } ] } },
+      { n:[[-1,"散值。陈洪忍不住问：「干爹，两边都得罪光了，往后咱们靠谁？」"],
+          [0,"（你把批红的笔洗净，搁回笔架。）靠谁？咱家谁也不靠。"],
+          [0,"严党会倒，清流会用完，裕王会登基——咱家只靠一条：司礼监的笔，不歪。"],
+          [-1,"陈洪似懂非懂。你望着那支笔——笔杆上，先帝留下的牙印，还在。"]] }
+    ],
+    win:[["ping",">=",52],["sheng",">=",50],["wei","<=",60]],
+    lose:[["wei",">=",90],["ping","<=",20]],
+    wt:"两边的帖子都回了，浙江案的原章进了御前，「谁像皇上」的题也答了。司礼监的笔还是直的——直，比什么都值钱。",
+    lt:"天平歪了。严党记恨你，清流提防你，皇上疑你——司礼监的笔还没歪，握笔的手，先被人盯上了。" },
+
+  { t:"西苑长夜", hint:"皇上病重，数日不朝。严党在宫门外候信，清流在直房外候信，裕王在府里候信。<b>这一夜，司礼监就是大明</b>。",
+    res:{ ben:55, sheng:55, wei:40, ping:50 },
+    actors:[["吕芳","司礼监掌印","#b07ae0","吕"],["嘉靖帝","皇帝","#e6b422","玄"],["陈洪","秉笔太监","#c05040","陈"]],
+    nodes:[
+      { n:[[-1,"嘉靖四十五年，冬。皇上咳了三天，西苑的精舍，灯火彻夜不灭。宫门外，严党的马车、清流的轿子，远远地停着，像两群等天黑的鸦。"],
+          [1,"（陈洪低声。）干爹，外头都在传——皇上怕是不行了。裕王进不进宫，您一句话。"]] },
+      { c:{ p:"裕王进宫，是国本归位；不进，是君臣大义。你的一句话？", o:[
+        { t:"「请裕王入侍汤药。」——名正言顺，接进宫来", h:"新君的人情，从今夜算起", fx:{ben:12,sheng:5,wei:8},
+          r:[[0,"（你亲自去的天阶。）王爷，皇上念您。入宫，侍疾。"],
+             [-1,"裕王的轿子从西华门进去，两群鸦都看见了。这一夜，站队的站队，装死的装死。"]] },
+        { t:"「宫禁森严。裕王回府，候旨。」——按规矩来", h:"规矩，是最硬的盾", fx:{wei:-6,ben:-5,ping:5},
+          r:[[0,"（你对裕王的长史说。）王爷的孝，在府里静候。宫门，是规矩。"],
+             [-1,"长史深深一揖。你听见他走远时回头看了一眼宫墙——这一眼的分量，你懂。"]] },
+        { t:"去问皇上——「裕王侍疾，皇上意下如何？」", h:"把决定权还给病人", fx:{sheng:6,wei:-3,ben:4},
+          r:[[2,"（病榻上，皇上很久，说了一个字。）……来。"],
+             [-1,"一个字，你记下了。你亲自去请裕王——这一趟路，你走得比哪次都稳。"]] } ] } },
+      { n:[[-1,"四更，皇上忽然清醒，屏退众人，只留你。他从枕下摸出一张小纸——上面是一个名字，不是裕王的。"],
+          [2,"（皇上气若游丝。）吕芳……这个人，朕死了以后……别让他……活着……"],
+          [-1,"你把纸条凑到灯前，看清了名字。你的手，很稳。"]] },
+      { c:{ p:"先帝的遗命，一张纸，一条命。", o:[
+        { t:"烧了。——「皇上说的，奴婢没听清。」", h:"替新君烧掉一道难题", fx:{ben:10,sheng:8,wei:6},
+          r:[[0,"（你把纸条凑近灯焰，看着它卷成灰。）皇上，夜深了。奴婢什么都没听见。"],
+             [-1,"纸灰落进火盆。你伺候了皇上四十年，这一夜，你替他守了最后一个密——也替新君，挡了第一刀。"]] },
+        { t:"记下，封存——「奴婢听清了。奴婢照办。」", h:"忠臣，忠到最后一刻", fx:{sheng:10,wei:8,ben:-5},
+          r:[[0,"（你叩首。）奴婢遵旨。"],
+             [-1,"纸条封进直房的柜。你不知道将来打开它的是谁——你只知道，君命就是君命。"]] },
+        { t:"「皇上，您再说一遍。」——凑近，听清，然后烧掉", h:"两头的忠", fx:{sheng:5,wei:5,ben:3},
+          r:[[2,"（皇上又念了一遍。你点头，把纸烧了。）"],
+             [-1,"你听清了，也烧了。这一夜之后，天底下只有你一个人，知道那个名字。"]] } ] } },
+      { n:[[-1,"五更，宫门外起了骚动——严党的人递牌子求见皇上，清流的人递牌子求见裕王。两拨人隔着宫门，第一次不再避讳。"],
+          [1,"（陈洪的声音发紧。）干爹，严家的人带了家丁，说是「护驾」！"]] },
+      { c:{ p:"宫门开不开？家丁进不进？", o:[
+        { t:"闭门。——「宫禁重地，家丁入一步，斩。」", h:"拿命堵门", fx:{wei:8,sheng:6,ping:5},
+          r:[[0,"（你站在宫门上，声音不大。）司礼监掌印吕芳，奉旨守门。天亮了，自然见。"],
+             [-1,"门内，锦衣卫换了自己的班。门外，家丁们站了半夜，天亮时，自己散了。"]] },
+        { t:"开门放人——「严阁老三朝老臣，护驾是忠心」", h:"放进来的是人，放进来的是刀", fx:{wei:12,ben:-8},
+          r:[[-1,"严家的家丁进了西苑，「护」在裕王下榻的厢房外——一夜。第二天，裕王什么都没说，你什么都没说。"]] },
+        { t:"传口谕：「裕王侍疾，百官候于朝房。」——各归各位", h:"一句话，三方各得其所", fx:{ping:8,wei:-6,sheng:4},
+          r:[[0,"（你的口谕在宫门口念了三遍。）裕王侍疾，百官候于朝房。——这是规矩，也是台阶。"],
+             [-1,"严党的人进了朝房，清流的人进了朝房。天快亮时，两拨人在朝房里相遇，谁也没说话——该来的，都在等天亮。"]] } ] } },
+      { n:[[-1,"天亮。皇上的呼吸缓了，太医说，稳住了。宫门开了，百官入宫问安，像什么都没发生过。"],
+          [2,"（陈洪扶着你的胳膊，手在抖。）干爹，奴才昨晚……腿都是软的。"],
+          [0,"（你望着丹房顶上的晨光。）软着腿，把门守住了——这就是咱家这样的人，一辈子的事。"],
+          [-1,"你回直房，把那盏琉璃灯添满油。长夜过去了——灯，还得点着。"]] }
+    ],
+    win:[["ben",">=",65],["sheng",">=",60],["wei","<=",70]],
+    lose:[["wei",">=",95],["ben","<=",25]],
+    wt:"宫门守住了，裕王安顿好了，遗命烧了或封了——无论哪种，你都替两代君主，守住了同一夜。司礼监的灯，熬到了天亮。",
+    lt:"那一夜，宫门开了一次，家丁进了一步，纸条递出去了一回。天亮之后，一切如常——只有你知道，如常这两个字，你没能守住。" }
+]},
+};
+
+/* ================= 阵营结局 ================= */
+const FINALE = {
+hairui:{ poem:"不要人夸颜色好，只留清气满乾坤。<div style='font-size:12px;color:#6f5f42'>—— 王冕《墨梅》</div>",
+  text:"你这一生，无党无援，屡起屡踬。可隆庆朝你被起复，万历朝你官至南京右都御史。你死后，南京百姓罢市相送，白衣满城。史书给你四个字：海青天。——孤臣的路，走通了。" },
+yan:{ poem:"眼看他起朱楼，眼看他宴宾客，眼看他楼塌了。<div style='font-size:12px;color:#6f5f42'>—— 孔尚任《桃花扇》</div>",
+  text:"你终究没能斗过历史——但在这条时间线里，你保全了家族，全始全终。归里那年，你在灯下重读自己写的青词，忽然分不清：哪一句是写给上天的，哪一句是写给自己的。" },
+qingliu:{ poem:"千淘万漉虽辛苦，吹尽狂沙始到金。<div style='font-size:12px;color:#6f5f42'>—— 刘禹锡《浪淘沙》</div>",
+  text:"你做了十年首辅，一条鞭法铺向天下，万历初年的中兴，底子是你打的。张居正接手时，对你执弟子礼。你临终前让人取来那卷旧档，上面只有两个字：忍，等。" },
+silu:{ poem:"诸葛一生唯谨慎，吕端大事不糊涂。<div style='font-size:12px;color:#6f5f42'>—— 顾宪成联，剧中吕芳座右铭</div>",
+  text:"改元诏书上没有你的名字，可新帝登基那夜，在殿外看了你一眼，对裕王旧臣说：「吕芳，老忠了。」你回直房，把那盏琉璃灯吹熄了。宫里的长夜，你守到了天亮。" },
+jiajing:{ poem:"黄河尚有澄清日，人间再无清净时。<div style='font-size:12px;color:#6f5f42'>—— 明谚，改</div>",
+  text:"你驭了一辈子平衡，修了一辈子玄。弥留之际，你想起海瑞那句「家家皆净」，忽然笑了：骂就骂吧，这天下，终究是替你扛住了。你死后庙号「肃」——明史上最有才也最孤独的皇帝。" }
+};
+
+/* ================= 存档 ================= */
+const SAVE_KEY = "ming1566_lv";
+function loadSave(){ try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch(e){ return {}; } }
+function saveUnlock(cid, n){ const s = loadSave(); if((s[cid]||0) < n){ s[cid]=n; localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } }
+
+/* ================= 界面路由 ================= */
+const $ = s => document.querySelector(s);
+function show(id){ document.querySelectorAll(".screen").forEach(x=>x.classList.remove("on")); $(id).classList.add("on"); }
+
+function renderSelect(){
+  const s = loadSave();
+  $("#factions").innerHTML = Object.entries(CAM).map(([id,c])=>{
+    const done = s[id]||0;
+    return `<div class="fc" style="--c:${c.c}" data-c="${id}">
+      <div class="fa">${c.av}</div><h3>${c.name}</h3><p>${c.desc}</p>
+      <div class="prog">${done>=4?"✓ 已通关":done>0?`已通 ${done}/4 关`:"未开始"}</div></div>`;
+  }).join("");
+  document.querySelectorAll(".fc").forEach(el=>el.onclick=()=>openCampaign(el.dataset.c));
+  show("#sc-sel");
+}
+
+function openCampaign(cid){
+  $("#ov").classList.remove("show");
+  const c = CAM[cid], s = loadSave(), done = s[cid]||0;
+  $("#lvhead").innerHTML = `<div class="fa" style="--c:${c.c}">${c.av}</div><h2>${c.name}</h2>
+    <button class="btn back" id="lv-back">返回</button>`;
+  $("#lv-back").onclick = renderSelect;
+  $("#lvlist").innerHTML = c.levels.map((L,i)=>{
+    const locked = i > done, win = i < done;
+    return `<div class="lv ${locked?"locked":""}" style="--c:${c.c}" data-i="${i}">
+      <div class="no">${win?"✓":i+1}</div>
+      <div class="lt"><b>${L.t}</b><span>${L.hint.replace(/<[^>]+>/g,"").slice(0,36)}…</span></div>
+      <div class="st ${win?"win":locked?"":"cur"}">${win?"通关":locked?"未解锁":"可挑战"}</div></div>`;
+  }).join("");
+  document.querySelectorAll(".lv").forEach(el=>{
+    if(!el.classList.contains("locked")) el.onclick = ()=>startLevel(cid, +el.dataset.i);
+  });
+  show("#sc-lv");
+}
+
+/* ================= 引擎 ================= */
+let cur = null;
+const clamp = v => Math.max(0, Math.min(100, v));
+const met = cs => cs.every(([k,op,v]) => op===">=" ? cur.res[k]>=v : cur.res[k]<=v);
+
+function startLevel(cid, li){
+  const L0 = CAM[cid].levels[li];
+  $("#ov").classList.remove("show");
+  cur = { cid, li, L:JSON.parse(JSON.stringify(L0)), res:{...L0.res}, ni:0, ln:0, over:false };
+  $("#p-title").textContent = `${CAM[cid].name} · ${L0.t}`;
+  $("#hint").innerHTML = L0.hint;
+  $("#stage").innerHTML = L0.actors.map((a,i)=>
+    `<div class="card" id="ac-${i}" style="--c:${a[2]}">
+     ${(()=>{const u=AVATARS[NAME2AV[a[0]]];return u?`<div class="av photo"><img src="${u}" alt="${a[0]}"></div>`:`<div class="av">${a[3]}</div>`;})()}<div class="nm">${a[0]}</div><div class="tt">${a[1]}</div></div>`).join("");
+  renderRes();
+  show("#sc-play");
+  node();
+}
+function rcol(k){ return BADR[k] ? "#c05040" : "#d4af37"; }
+function renderRes(){
+  const bars = Object.entries(cur.res).map(([k,v])=>
+    `<div class="rs"><div class="lab"><span>${RESN[k]}${BADR[k]?"（低好）":""}</span><b>${Math.round(v)}</b></div>
+     <div class="t"><i style="width:${v}%;background:${rcol(k)}"></i></div></div>`).join("");
+  $("#res").innerHTML = bars + `<div id="floater"></div>`;
+}
+function floater(txt){
+  const f = $("#floater"); if(!f) return;
+  f.textContent = txt; f.classList.remove("go"); void f.offsetWidth; f.classList.add("go");
+}
+function applyFx(fx){
+  const parts = [];
+  for(const k in fx){
+    if(!(k in cur.res)) continue;
+    cur.res[k] = clamp(cur.res[k] + fx[k]);
+    parts.push(`${RESN[k]}${fx[k]>0?"+":""}${fx[k]}`);
+  }
+  renderRes();
+  return parts.join(" ");
+}
+function speak(w){
+  document.querySelectorAll(".card").forEach(c=>c.classList.remove("speaking"));
+  if(w>=0){ const c = $(`#ac-${w}`); if(c) c.classList.add("speaking"); }
+}
+function node(){
+  const nd = cur.L.nodes[cur.ni];
+  if(!nd){ end(); return; }
+  if(nd.c) choice(nd);
+  else { cur.ln = 0; line(); }
+}
+function line(){
+  const [w,t] = cur.L.nodes[cur.ni].n[cur.ln];
+  speak(w);
+  $("#box").innerHTML = (w<0 ? `<span class="nar">${t}</span>` : `<span class="who">${cur.L.actors[w][0]}</span>${t}`)
+    + `<span class="more">▼ 点击继续</span>`;
+}
+function advance(){
+  if(!cur || cur.over) return;
+  const nd = cur.L.nodes[cur.ni];
+  if(!nd || nd.c) return;
+  cur.ln++;
+  if(cur.ln < nd.n.length) line();
+  else { cur.ni++; node(); }
+}
+function choice(nd){
+  speak(-1);
+  let h = `<div class="ask">${nd.c.p}</div><div id="chs">`;
+  nd.c.o.forEach((o,i)=>{
+    h += `<button class="ch" data-o="${i}">${o.t}${o.h?`<span class="sub">${o.h}</span>`:""}</button>`;
+  });
+  $("#box").innerHTML = h + "</div>";
+  document.querySelectorAll(".ch").forEach(b=>b.onclick = e=>{ e.stopPropagation(); pick(+b.dataset.o); });
+}
+function pick(oi){
+  const nd = cur.L.nodes[cur.ni], o = nd.c.o[oi];
+  const parts = applyFx(o.fx||{});
+  if(parts) floater(parts);
+  cur.ni++;
+  if(o.r) cur.L.nodes.splice(cur.ni, 0, {n:o.r});
+  for(const k in cur.res) if(BADR[k] && cur.res[k]>=100){ end(true); return; }
+  node();
+}
+function end(crash){
+  cur.over = true;
+  const L = cur.L, c = CAM[cur.cid];
+  const win = !crash && !met(L.lose) && met(L.win);
+  if(win) saveUnlock(cur.cid, cur.li + 1);
+  $("#ov-t").textContent = win ? "旗开得胜" : "功败垂成";
+  $("#ov-t").className = win ? "" : "lose";
+  $("#ov-x").innerHTML = (win ? L.wt : L.lt) + `<br><br><span style="color:#6f5f42">结局：${
+    Object.entries(cur.res).map(([k,v])=>`${RESN[k]} ${Math.round(v)}`).join(" · ")}</span>`;
+  const btns = $("#ov-b");
+  if(win){
+    if(cur.li + 1 >= c.levels.length){
+      btns.innerHTML = `<button class="btn" id="b-final">查看阵营结局</button>`;
+      $("#b-final").onclick = ()=>showFinal(cur.cid);
+    } else {
+      btns.innerHTML = `<button class="btn" id="b-next">下一关</button><button class="btn" id="b-back2">选关</button>`;
+      $("#b-next").onclick = ()=>{ $("#ov").classList.remove("show"); startLevel(cur.cid, cur.li+1); };
+      $("#b-back2").onclick = ()=>{ $("#ov").classList.remove("show"); openCampaign(cur.cid); };
+    }
+  } else {
+    btns.innerHTML = `<button class="btn" id="b-retry">再演本关</button><button class="btn" id="b-back3">选关</button>`;
+    $("#b-retry").onclick = ()=>{ $("#ov").classList.remove("show"); startLevel(cur.cid, cur.li); };
+    $("#b-back3").onclick = ()=>{ $("#ov").classList.remove("show"); openCampaign(cur.cid); };
+  }
+  setTimeout(()=>$("#ov").classList.add("show"), 500);
+}
+function showFinal(cid){
+  const c = CAM[cid], f = FINALE[cid];
+  $("#ov-t").textContent = c.name.split(" · ")[1] + " · 终局";
+  $("#ov-t").className = "";
+  $("#ov-x").innerHTML = `<div class="poem">${f.poem}</div><br>${f.text}`;
+  $("#ov-b").innerHTML = `<button class="btn" id="b-home">回到开头</button>`;
+  $("#b-home").onclick = ()=>{ $("#ov").classList.remove("show"); renderSelect(); };
+}
+
+/* ================= 控制 ================= */
+$("#box").onclick = advance;
+document.addEventListener("keydown", e=>{
+  if(e.code==="Space" || e.code==="Enter"){
+    if($("#sc-play").classList.contains("on")){ e.preventDefault(); advance(); }
+  }
+});
+$("#p-retry").onclick = ()=>startLevel(cur.cid, cur.li);
+$("#p-back").onclick = ()=>openCampaign(cur.cid);
+
+renderSelect();
+</script>
+</body>
+</html>
